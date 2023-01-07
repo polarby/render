@@ -1,6 +1,5 @@
 *PRE-RELEASE*
 
-A package
 # Render 
 
 With the Render widget you can render and convert wigets into a wide range of exportable file formats. Main features include:
