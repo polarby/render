@@ -1,34 +1,83 @@
 *PRE-RELEASE*
 
-A package to render a flutter widget to a file.
+A package
+# Render 
 
-Supported file conversations:
+With the Render widget you can render and convert wigets into a wide range of exportable file formats. Main features include:
 
- - [ ] Image
- - [ ] Video
- - [ ] Video + sound
- - [ ] GIF
+- Render static or animated widgets to png, jpg, gif, mov and mp4 (including sound) 
+- Rendering wigets that are not in your widget tree (not displayed/build) 
+- Render multiple variations of your widget at the same time with layered rendering (including mixed building visualisation) 
 
-## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+**Important:** Note that rendering front-end elements is not considered the most efficient and native approach to editing images and videos. Use with own responsabilty. 
 
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+-------
+## Examples 
+Video 
+## Usage 
 
 ```dart
-const like = 'sample';
+
+final _controller 	= RenderController();
+
+Render(
+    controller: _controller,
+    duration: Duration(seconds: 5),
+    builder: (context, RenderSnapshot snapshot){
+       return Container();
+    } 
+) 
+
+
+await  _controller.render(overwriteFrames: 269, frame: 5);
 ```
 
-## Additional information
+Tip: full interactive example for usage in `./example` folder. 
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+### Layered rendering 
+You might encounter situations where you want to have variations of your widget rendering (eg. one version with round corners & and one without). 
+Instead of rendering your widget multiple times you can use *layered rendering*, which renderes the widget only ones instead of multiple times and consequently reduces your rendering time and significantly. 
+
+Simply wrap a widget within your `Render` build with `RenderLayer`:
+```dart
+RenderLayer(
+    visualize: false,
+    child: ... 
+) 
+```
+
+
+
+## Properties of `Render`
+
+|  Name  |  Type  |  Default Behavior  |  Description  |
+|----|----|----|----|
+|  controller  |  PageController?  |  PageController() |  The controller to manipulate the state of your list. The behavior of list and controller equals the default `PageView` widget  |
+|  *required* itemBuilder  |  Widget Function(BuildContext, int) |    |   |
+|  *required* itemCount  |  int  |    |    |
+|  scrollDirection  |  Axis  |  Axis.horizontal |    |
+|  physics  |  ScrollPhysics?  |  AlwaysScrollable() |    |
+|  itemExtent |  double? |    |    |
+|  minCacheExtent  |  double? |    |    |
+|  itemSnapping  |  bool  |  false  |    |
+|  addSemanticIndexes  |  bool  |  true  |    |
+|  addAutomaticKeepAlives  |  bool  |  true  |    |
+|  addRepaintBoundaries  |  bool  |  true  |    |
+|  reverse  |  bool  |  false  |    |
+|  itemPositionsListener  |  ItemPositionsListener?  |    |    |
+|  onPageChanged  |  void Function(int index, double size)? |    |    |
+|  onPageChange  |  void Function(double page, double size)? |    |    |
+|  overscrollPhysics  |  PageOverscrollPhysics?  |  normal PageView scrolling |    |
+|  scrollBehavoir  |  ScrollBehavoir?  |    |    |
+|  visualisation |  ListVisualisation?  |  ListVisualisation.normal() |    |
+|  allowItemSizes  |  bool  |  false  |    |
+|  snapAlignment  |  SnapAlignment  |  SnapAlignment.static(0.5) |    |
+|  snapOnItemAlignment  |  SnapAlignment  |  SnapAlignment.static(0.5)  |    |
+
+## Properties of `RenderLayer`
+
+## Properties of `RenderController`
+
+## Additional information
+Contributions are very welcome and can be merged within hours if testing is successful. 
