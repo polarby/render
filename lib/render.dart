@@ -1,5 +1,7 @@
 library render;
 
-export 'src/capture.dart';
 export 'src/core.dart';
-export 'src/service.dart';
+export 'src/snapshot.dart';
+export 'src/controller.dart';
+export 'src/settings.dart';
+export 'src/renderLayer.dart';

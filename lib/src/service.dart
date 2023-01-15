@@ -1,19 +1,11 @@
-class RenderSnapshot {
-  final int frameRate;
-  final Duration duration;
+import 'package:flutter/cupertino.dart';
+
+class RenderPaint {
   final int frame;
+  final GlobalKey key;
 
-  RenderSnapshot({
-    required this.duration,
-    required this.frameRate,
+  RenderPaint({
     required this.frame,
+    required this.key,
   });
-
-  int get numberOfFrames => frameRate * (duration.inSeconds);
-}
-
-enum RenderState {
-  rendering,
-  done,
-  none,
 }

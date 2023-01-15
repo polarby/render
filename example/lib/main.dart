@@ -1,5 +1,11 @@
+import 'package:example/animated_example_widget.dart';
+import 'package:example/animated_example_buttons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:render/render.dart';
+import 'animated_example_controller.dart';
+import 'animated_example_popup.dart';
+import 'package:screenshot/screenshot.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,38 +30,93 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
+  late final Future<ExampleAnimationController> init;
+  final RenderController renderController = RenderController();
+  final ScreenshotController screenshotController = ScreenshotController();
+
+  final GlobalKey renderKey = GlobalKey();
+
+  @override
+  void initState() {
+    init = ExampleAnimationController.create(this);
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Render(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("Render"),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: Card(
-                  elevation: 5,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Render Example"),
+      ),
+      body: FutureBuilder(
+        future: init,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.connectionState == ConnectionState.done &&
+              snapshot.hasData) {
+            final functionController = snapshot.data!;
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Spacer(),
+                  /*
+                  Render(
+                    controller: renderController,
+                    builder: (BuildContext context, RenderSnapshot snapshot) {
+                      if (snapshot.renderState == RenderState.rendering) {
+                        functionController.videoController
+                            .seekTo(snapshot.activity!.seekDuration);
+                        //animationController.animateTo(target)
+                      }
+                      return AnimatedExampleWidget(
+                        exampleAnimationController: functionController,
+                      );
+                    },
                   ),
-                  child: ClipPath(
-                    clipper: ShapeBorderClipper(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15))),
-                    child: Container(
-                      color: Colors.orange,
+
+                   */
+                  Screenshot(
+                    controller: screenshotController,
+                    child: AnimatedExampleWidget(
+                      exampleAnimationController: functionController,
                     ),
                   ),
-                ),
+                  const Spacer(),
+                  NavigationButtons(
+                    renderCallback: () async {
+                      /*
+                      final file = await renderController.capture(
+                        RenderSettings(
+                          duration:
+                              functionController.videoController.value.duration,
+                          frameRate: 10,
+                        ),
+                      );
+
+                       */
+                      print("render widget");
+                      final bytes = await screenshotController.capture();
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) => AnimatedExamplePopUp(
+                          context: context,
+                          imageBytes: bytes,
+                        ),
+                      );
+                    },
+                    exampleAnimationController: functionController,
+                  ),
+                ],
               ),
-              TextButton(onPressed: () {}, child: const Text("Render"))
-            ],
-          ),
-        ),
+            );
+          } else {
+            return Text("Error");
+          }
+        },
       ),
     );
   }

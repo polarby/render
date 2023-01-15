@@ -1,46 +1,43 @@
 import 'package:flutter/material.dart';
-import 'package:render/src/service.dart';
+import 'package:render/render.dart';
 
 class Render extends StatefulWidget {
-  final Duration duration;
-  final int frameRate;
-  final Widget Function(RenderSnapshot snapshot) builder;
+  final RenderController controller;
+  final Widget Function(BuildContext context, RenderSnapshot snapshot) builder;
 
-  Render({Key? key, required Widget child})
-      : builder = ((snapshot) => child),
-        duration = const Duration(seconds: 1),
-        frameRate = 1,
-        super(key: key);
-
-  const Render.frames({
+  Render({
     Key? key,
-    required this.duration,
-    required this.frameRate,
     required this.builder,
-  }) : super(key: key);
+    RenderController? controller,
+  })  : controller = controller ?? RenderController(),
+        super(key: key);
 
   @override
   State<Render> createState() => _RenderState();
 }
 
 class _RenderState extends State<Render> {
-  int currentFrame = 0;
+  final GlobalKey renderKey = GlobalKey();
+  RenderSnapshot snapshot = RenderSnapshot();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.attach((snapshot) async {
+      setState(() {
+        this.snapshot = snapshot;
+      });
+      await WidgetsBinding.instance
+          .waitUntilFirstFrameRasterized; // ? waitUntilFirstFrameRasterized
+      return renderKey;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (currentFrame < snapshot.numberOfFrames) {
-        setState(() {
-          currentFrame++;
-        });
-      }
-    });
-    return widget.builder(snapshot);
+    return RepaintBoundary(
+      key: renderKey,
+      child: widget.builder(context, snapshot),
+    );
   }
-
-  RenderSnapshot get snapshot => RenderSnapshot(
-        frame: currentFrame,
-        duration: widget.duration,
-        frameRate: widget.frameRate,
-      );
 }
