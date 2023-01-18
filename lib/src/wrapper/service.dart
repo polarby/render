@@ -1,3 +1,0 @@
-
-
-enum WrapperType { videoPlayer, custom }

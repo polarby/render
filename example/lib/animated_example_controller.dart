@@ -14,6 +14,7 @@ class ExampleAnimationController extends ChangeNotifier {
   }) {
     animationController.addListener(() {
       if (animationController.status == AnimationStatus.completed) {
+        animationController.stop();
         animationController.reset();
         videoController.seekTo(const Duration(microseconds: 0));
         notifyListeners();

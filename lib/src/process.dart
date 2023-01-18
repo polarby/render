@@ -1,74 +1,78 @@
-import 'dart:io';
-
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
-import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:render/src/session.dart';
 import 'package:render/src/settings.dart';
-import 'package:uuid/uuid.dart';
+import 'exception.dart';
 
-class RenderProcess {
-  final RenderSettings settings;
-  final String sessionId;
-  final Directory temporaryDirectory;
+class RenderProcessor<T extends RenderSettings> {
+  final RenderSession<T> session;
 
-  RenderProcess({
-    String? sessionId,
-    required this.settings,
-    required this.temporaryDirectory,
-  }) : sessionId = sessionId ?? const Uuid().v4();
+  RenderProcessor({
+    required this.session,
+  });
 
-  static Future<RenderProcess> start(RenderSettings settings) async {
-    return RenderProcess(
-      settings: settings,
-      temporaryDirectory: await getTemporaryDirectory(),
-    );
-  }
+  bool processing = false;
 
-  String get inputDirectory =>
-      "${temporaryDirectory.path}/render/$sessionId/input";
+}
 
-  String get outputDirectory =>
-      "${temporaryDirectory.path}/render/$sessionId/output";
+class ImageRenderProcess extends RenderProcessor<ImageSettings> {
+  ImageRenderProcess({
+    required super.session,
+  });
+}
+
+class MotionRenderProcess extends RenderProcessor<MotionSettings> {
+
+  MotionRenderProcess({
+    required super.session,
+  });
 
   ///Converts saved frames from temporary directory to output file
-  Future<File> process() async {
-    final outputPath = "$outputDirectory/output_$sessionId.mp4";
-    final outputFile = File(outputPath);
-    if (!outputFile.existsSync()) await outputFile.create(recursive: true);
-    final process = await FFmpegKit.execute(
-        "-y " // replace output file if it already exists
-        "-framerate ${settings.frameRate} "
-        "-i $inputDirectory/frame%d.png " // input frames
-        "$outputPath" // output format
-        );
+  Future<void> process() async {
+    if (processing) {
+      throw const RenderException(
+          "Cannot start new process, during an active one.");
+    }
+    processing = true;
+    final outputFile =
+    await session.createOutputFile(
+        "output_main.${session.settings.format.name}");
+    final paletteFile = await session.createProcessFile("palette.png");
+    final palette = await FFmpegKit.executeWithArguments([
+      "-y",
+      "-i",
+      "${session.inputDirectory}/frame%d.png",
+      "-vf",
+      "palettegen",
+      paletteFile.path
+    ]);
+    final process = await FFmpegKit.executeWithArguments([
+      "-y",
+      "-v",
+      "warning",
+      "-i",
+      "${session.inputDirectory}/frame%d.png",
+      "-i",
+      paletteFile.path,
+      "-lavfi",
+      "paletteuse,setpts=3*PTS",
+      outputFile.path
+    ]);
+    /*
+    final process = await FFmpegKit.executeWithArguments([
+      "-y",
+      "-framerate",
+      settings.frameRate.toString(),
+      "-i",
+      "$inputDirectory/frame%d.png",
+      "-gifflags",
+      "-offsetting",
+      outputPath
+    ]);
+     */
     final logs = await process.getLogs();
     print("FFmpegKit-logs: ${logs.map((e) => e.getMessage())}");
-    return outputFile;
-  }
+    processing = false;
 
-  Future<void> capture(GlobalKey contentKey, int frameNumber) async {
-    try {
-      assert(contentKey.currentContext != null,
-          "The current widget context is not valid");
-      //capture context
-      final RenderRepaintBoundary boundary = contentKey.currentContext!
-          .findRenderObject() as RenderRepaintBoundary;
-      final ui.Image image = await boundary.toImage(
-          pixelRatio: 3.0); // ? should be edited in settings
-      //convert to file
-      final ByteData? byteData = await image.toByteData(
-          format: ui.ImageByteFormat.png); // ? can be jpg for transparent video
-      final rawIntList = byteData!.buffer.asInt8List().toList();
-      final File file = File('$inputDirectory/frame$frameNumber.png');
-      if (!file.existsSync()) await file.create(recursive: true);
-      await file.writeAsBytes(rawIntList);
-      image.dispose();
-      print("done capturing frame: $frameNumber");
-    } catch (e) {
-      rethrow;
-    }
+    session.recordResult(outputFile);
   }
 }

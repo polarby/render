@@ -1,11 +1,10 @@
 import 'package:example/animated_example_widget.dart';
 import 'package:example/animated_example_buttons.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 import 'package:render/render.dart';
 import 'animated_example_controller.dart';
 import 'animated_example_popup.dart';
-import 'package:screenshot/screenshot.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,9 +33,8 @@ class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late final Future<ExampleAnimationController> init;
   final RenderController renderController = RenderController();
-  final ScreenshotController screenshotController = ScreenshotController();
 
-  final GlobalKey renderKey = GlobalKey();
+  //final ScreenRecorderController screenRecorderController = ScreenRecorderController(pixelRatio: 5);
 
   @override
   void initState() {
@@ -63,52 +61,58 @@ class _MyHomePageState extends State<MyHomePage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   const Spacer(),
-                  /*
                   Render(
                     controller: renderController,
-                    builder: (BuildContext context, RenderSnapshot snapshot) {
-                      if (snapshot.renderState == RenderState.rendering) {
-                        functionController.videoController
-                            .seekTo(snapshot.activity!.seekDuration);
-                        //animationController.animateTo(target)
-                      }
-                      return AnimatedExampleWidget(
-                        exampleAnimationController: functionController,
-                      );
-                    },
-                  ),
-
-                   */
-                  Screenshot(
-                    controller: screenshotController,
                     child: AnimatedExampleWidget(
                       exampleAnimationController: functionController,
                     ),
                   ),
                   const Spacer(),
                   NavigationButtons(
-                    renderCallback: () async {
-                      /*
-                      final file = await renderController.capture(
-                        RenderSettings(
-                          duration:
-                              functionController.videoController.value.duration,
-                          frameRate: 10,
-                        ),
+                    motionRenderCallback: () async {
+                      print(
+                          "render widget, duration: ${functionController.videoController.value.duration}");
+                      print(
+                          "total frames: ${100 * functionController.videoController.value.duration.inSeconds}");
+
+                      functionController.play();
+                      final resultStream =
+                          renderController.captureMotionWithStream(
+                        functionController.videoController.value.duration,
+                        const MotionSettings(frameRate: 1, pixelRatio: 5),
                       );
 
-                       */
-                      print("render widget");
-                      final bytes = await screenshotController.capture();
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) => AnimatedExamplePopUp(
+                      resultStream.stream.listen((event) {
+                        if (event.isActivity) {
+                          final activity = event as RenderActivity;
+                          print("RenderActivity: ${activity.message} - "
+                              "${activity.state.name}, time remaining:"
+                              " ${activity.timeRemaining}, percentage:"
+                              " ${activity.progressPercentage}");
+                        }
+                      });
+                      final resultNotifier = await resultStream.stream
+                          .firstWhere((element) => element.isResult);
+                      final result = resultNotifier as RenderResult;
+                      print(
+                          "Finished export: totalTime: ${result.totalRenderTime}");
+                      print("file exits: ${await result.output.exists()}");
+                      if (mounted) {
+                        showDialog(
                           context: context,
-                          imageBytes: bytes,
-                        ),
-                      );
+                          builder: (BuildContext context) =>
+                              AnimatedExamplePopUp(
+                            context: context,
+                            //video: result,
+                            imageBytes: result.output.readAsBytesSync(),
+                          ),
+                        );
+                      }
+                      await GallerySaver.saveImage(result.output.path);
+                      print("saved export to gallery");
                     },
                     exampleAnimationController: functionController,
+                    imageRenderCallback: () {},
                   ),
                 ],
               ),

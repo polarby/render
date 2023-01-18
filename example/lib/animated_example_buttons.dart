@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'animated_example_controller.dart';
 
 class NavigationButtons extends StatelessWidget {
-  final VoidCallback renderCallback;
+  final void Function() motionRenderCallback;
+  final void Function() imageRenderCallback;
   final ExampleAnimationController exampleAnimationController;
 
   const NavigationButtons({
     Key? key,
-    required this.renderCallback,
+    required this.imageRenderCallback,
+    required this.motionRenderCallback,
     required this.exampleAnimationController,
   }) : super(key: key);
 
@@ -26,9 +28,14 @@ class NavigationButtons extends StatelessWidget {
           children: [
             TextButton(
                 onPressed: () {
-                  renderCallback();
+                  motionRenderCallback();
                 },
-                child: const Text("Capture")),
+                child: const Text("Capture motion")),
+            TextButton(
+                onPressed: () {
+                  imageRenderCallback();
+                },
+                child: const Text("Capture image")),
             TextButton(
                 onPressed: () {
                   exampleAnimationController.play();

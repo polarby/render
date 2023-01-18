@@ -23,11 +23,10 @@ class AnimatedExamplePopUp extends StatelessWidget {
       title: const Text('Render result'),
       content: video != null
           ? FutureBuilder(future: () async {
-              final VideoPlayerController controller =
-                  VideoPlayerController.file(video!);
-              await Future.delayed(const Duration(milliseconds: 300));
-              await controller.initialize();
-              await controller.play();
+              final controller = VideoPlayerController.file(video!);
+              controller.initialize();
+              controller.setLooping(true);
+              controller.play();
               return controller;
             }(), builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {

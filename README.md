@@ -20,6 +20,32 @@ formats. Main features include:
 * Rendering front-end elements is not considered the most efficient and
   native approach to editing images and videos. Use with own responsibility.
 
+Supports Android, iOS, Linux, macOS and Windows.
+Not all methods are supported on all platforms.
+
+|             |  Android  |  iOS   |  Web  |  macOS   |    Windows    |
+|:------------|:---------:|:------:|:-----:|:--------:|:-------------:|
+| **Support** |  SDK 16+  |  9.0+  |  Any  |  10.11+  |  Windows 10+  |
+| Video       |    ✔️     |   ✔️   |  ❌️️  |    ✔️    |      ✔️       |
+| Image       |    ✔️     |   ✔️   |  ✔️   |    ✔️    |      ✔️       |
+
+## Supported platforms and functions
+
+`Render` supports transparency across with all compatible file types (video & image).
+Note, that the default flutter [Video_player](https://pub.dev/packages/video_player) does not
+support displaying transparent videos and will only show a black background.
+
+|            Image             | Video | 
+|:----------------------------:|:-----:|
+|             .png             | .mp4  | 
+|             .jpg             | .mov  | 
+|     Application Library      |  ❌️   | 
+|    Application Documents     |  ✔️   |  
+|       External Storage       |  ✔️   | 
+|  External Cache Directories  |  ✔️   | 
+| External Storage Directories |  ✔️   |
+|          Downloads           |   ❌   |  
+
 -------
 
 ## Examples
@@ -29,23 +55,16 @@ Video
 ## Usage
 
 ```dart
-
+import 'package:render/render.dart';
+ 
 final _controller = RenderController();
 
-Render
-(
-controller: _controller,
-duration: Duration(seconds: 5),
-builder: (context, RenderSnapshot snapshot){
-return Container();
-}
+Render(
+  controller: _controller,
+  child: Container(), 
 )
 
-
-await _controller.render(overwriteFrames: 269, frame
-:
-5
-);
+await _controller.captureMotion(Duration(seconds: 4), const MotionSettings());
 ```
 
 Tip: full interactive example for usage in `./example` folder.
@@ -120,7 +139,7 @@ child
 * Isolated platform views
   are generally [not supported by flutter](https://github.com/flutter/flutter/issues/102866) (
   Example:
-  Google Maps, Camera, Vide players, etc.).
+  Google Maps, Camera, etc.).
   Please consider using the approach of this package by using `RenderWrapper`'s to be able to
   capture those widgets.
 
