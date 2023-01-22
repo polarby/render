@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:render/render.dart';
 import 'animated_example_controller.dart';
 
 class NavigationButtons extends StatelessWidget {
@@ -16,7 +17,49 @@ class NavigationButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: StreamBuilder<RenderNotifier>(
+              stream: exampleAnimationController.renderStream,
+              builder: (context, snapshot) {
+                if (snapshot.data?.isActivity == true) {
+                  final activity = snapshot.data as RenderActivity;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Render activity:",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text("Operation: ${activity.state.name}"),
+                      Text("Message: ${activity.message}"),
+                      Text("TimeRemaining: ${activity.timeRemaining}"),
+                      Text("TotalExpectedTime: ${activity.totalExpectedTime}"),
+                      Text(
+                          "ProgressPercentage: ${activity.progressPercentage * 100}%"),
+                      Text("Current time: ${activity.timestamp}"),
+                    ],
+                  );
+                } else if (snapshot.data?.isError == true) {
+                  final error = snapshot.data as RenderError;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Render Error:",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text("fatal: ${error.fatal}"),
+                      Text("Message: ${error.exception.message}"),
+                    ],
+                  );
+                } else {
+                  return Container();
+                }
+              }),
+        ),
         AnimatedBuilder(
             animation: exampleAnimationController.colorAnimation,
             builder: (context, child) {
@@ -24,24 +67,26 @@ class NavigationButtons extends StatelessWidget {
                 value: exampleAnimationController.process,
               );
             }),
-        Wrap(
-          children: [
-            TextButton(
-                onPressed: () {
-                  motionRenderCallback();
-                },
-                child: const Text("Capture motion")),
-            TextButton(
-                onPressed: () {
-                  imageRenderCallback();
-                },
-                child: const Text("Capture image")),
-            TextButton(
-                onPressed: () {
-                  exampleAnimationController.play();
-                },
-                child: const Text("Play"))
-          ],
+        Center(
+          child: Wrap(
+            children: [
+              TextButton(
+                  onPressed: () {
+                    motionRenderCallback();
+                  },
+                  child: const Text("Capture motion")),
+              TextButton(
+                  onPressed: () {
+                    imageRenderCallback();
+                  },
+                  child: const Text("Capture image")),
+              TextButton(
+                  onPressed: () {
+                    exampleAnimationController.play();
+                  },
+                  child: const Text("Play"))
+            ],
+          ),
         ),
       ],
     );

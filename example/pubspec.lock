@@ -343,6 +343,14 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
+  rich_console:
+    dependency: transitive
+    description:
+      name: rich_console
+      sha256: ffec58e93c7033c433e0fc2c0b1de4d0c745b369cb2c584f47bc309627e8dcb3
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   screen_recorder:
     dependency: "direct main"
     description:

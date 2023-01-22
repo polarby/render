@@ -4,17 +4,18 @@ import 'dart:ui' as ui;
 
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:flutter/rendering.dart';
-import 'package:render/src/notifier.dart';
-import 'package:render/src/session.dart';
-import 'package:render/src/settings.dart';
-import 'exception.dart';
+import 'package:render/render.dart';
+import 'package:render/src/service/notifier.dart';
+import 'package:render/src/service/session.dart';
+import 'package:render/src/service/settings.dart';
+import 'service/exception.dart';
 
-class RenderCapturer {
+class RenderCapturer<K extends RenderFormat> {
   /// Settings of how each frame should be rendered.
-  final RenderSettings settings;
+  final CapturingSettings settings;
 
   /// Current session captures should be assigned to.
-  final RenderSession session;
+  final RenderSession<K, CapturingSettings> session;
 
   RenderCapturer({
     required this.settings,
@@ -25,48 +26,85 @@ class RenderCapturer {
   /// as conversion and file writing is involved.
   final List<Future<void>> _handlers = [];
 
+  /// A flag to indicate whether the capturing process is running or not.
   bool _rendering = false;
 
-  /// Runs a capturing process for a defined time.
-  Future<void> run(Duration duration, int targetFrameRate) async {
-    start(targetFrameRate, duration);
+  ///The time position of capture start of the duration of the scheduler binding.
+  Duration? startingDuration;
+
+  DateTime? startTime;
+
+  /// Runs a capturing process for a defined time. Returns capturing time duration.
+  Future<RenderSession<K, EndCapturingSettings>> run(Duration duration) async {
+    start(duration);
 
     await Future.delayed(duration);
 
-    await finish();
+    return await finish();
   }
 
   /// Takes a single capture
-  Future<void> single() async {
+  Future<RenderSession<K, EndCapturingSettings>> single() async {
+    startTime = DateTime.now();
     final image = _captureContext();
+    _recordActivity(RenderState.capturing, 1,1, "Captured image.");
     await _handleCapture(image, 0);
+    _recordActivity(RenderState.handleCaptures, 1,1, "Handled image.");
+    final capturingDuration = Duration(
+        milliseconds: DateTime.now().millisecondsSinceEpoch -
+            startTime!.millisecondsSinceEpoch);
+    return session.upgrade(capturingDuration, 1);
   }
 
   /// Starts new capturing process for unknown duration
-  void start(int targetFrameRate, [Duration? duration]) {
+  void start([Duration? duration]) {
     assert(!_rendering, "Cannot start new process, during an active one.");
     _rendering = true;
-    session.binding.addPostFrameCallback((duration) =>
-        _postFrameCallback(duration, 0, targetFrameRate, duration));
+    startTime = DateTime.now();
+    session.binding.addPostFrameCallback((binderTimeStamp) {
+      startingDuration = session.binding.currentFrameTimeStamp;
+      _postFrameCallback(
+        binderTimeStamp: binderTimeStamp,
+        frame: 0,
+        duration: duration,
+      );
+    });
   }
 
-  /// Finishes current capturing process
-  Future<void> finish() async {
+  /// Finishes current capturing process. Returns the total capturing time.
+  Future<RenderSession<K, EndCapturingSettings>> finish() async {
     assert(_rendering, "Cannot finish capturing as, no active capturing.");
     _rendering = false;
+    startingDuration = null;
+    final capturingDuration = Duration(
+        milliseconds: DateTime.now().millisecondsSinceEpoch -
+            startTime!.millisecondsSinceEpoch);
+    final frameAmount = _handlers.length;
     await Future.wait(_handlers); //await all active capture handlers
     _handlers.clear();
+    return session.upgrade(capturingDuration, frameAmount);
   }
 
   /// A callback function that is called after each frame is rendered.
-  void _postFrameCallback(Duration timestamp, int frame, int targetFrameRate,
-      [Duration? duration]) async {
+  void _postFrameCallback({
+    required Duration binderTimeStamp,
+    required int frame,
+    Duration? duration,
+  }) async {
     if (!_rendering) return;
+    final targetFrameRate = session.settings.frameRate;
+    final relativeTimeStamp =
+        binderTimeStamp - (startingDuration ?? Duration.zero);
     final nextMilliSecond = (1 / targetFrameRate) * frame * 1000;
-    if (nextMilliSecond > timestamp.inMilliseconds) {
+    if (nextMilliSecond > relativeTimeStamp.inMilliseconds) {
       // add a new PostFrameCallback to know about the next frame
-      session.binding.addPostFrameCallback((duration) =>
-          _postFrameCallback(duration, frame, targetFrameRate, duration));
+      session.binding.addPostFrameCallback(
+        (binderTimeStamp) => _postFrameCallback(
+          binderTimeStamp: binderTimeStamp,
+          frame: frame,
+          duration: duration,
+        ),
+      );
       // but we do nothing, because we skip this frame
       return;
     }
@@ -76,15 +114,20 @@ class RenderCapturer {
       final image = _captureContext();
       _handlers.add(_handleCapture(image, frame, totalFrameTarget));
       _recordActivity(RenderState.capturing, frame, totalFrameTarget,
-          "Captured frame $frame.");
+          "Captured frame $frame");
     } on RenderException catch (exception) {
       session.recordError(
         exception,
         fatal: false,
       );
     }
-    session.binding.addPostFrameCallback((duration) =>
-        _postFrameCallback(duration, frame + 1, targetFrameRate, duration));
+    session.binding.addPostFrameCallback(
+      (binderTimeStamp) => _postFrameCallback(
+        binderTimeStamp: binderTimeStamp,
+        frame: frame + 1,
+        duration: duration,
+      ),
+    );
   }
 
   /// Converting the raw image data to a png file and writing the capture.
@@ -96,11 +139,11 @@ class RenderCapturer {
           await capture.toByteData(format: ui.ImageByteFormat.rawRgba);
       final rawIntList = byteData!.buffer.asInt8List();
       // * write raw file for processing
-      final rawFile = await session
-          .createInputFile("frameHandling/frame_raw$captureNumber.bmp");
+      final rawFile =
+          session.createInputFile("frameHandling/frame_raw$captureNumber.bmp");
       await rawFile.writeAsBytes(rawIntList);
       // * write & convert file (to save storage)
-      final file = await session.createInputFile("frame$captureNumber.png");
+      final file = session.createInputFile("frame$captureNumber.png");
       await FFmpegKit.executeWithArguments([
         "-y",
         "-f",
@@ -119,7 +162,7 @@ class RenderCapturer {
       if (!_rendering) {
         //only record next state, when rendering is done not to mix up notification
         _recordActivity(RenderState.handleCaptures, captureNumber,
-            totalFrameTarget, "Handled frame $captureNumber.");
+            totalFrameTarget, "Handled frame $captureNumber");
       }
     } catch (e) {
       session.recordError(
@@ -156,10 +199,11 @@ class RenderCapturer {
   void _recordActivity(
       RenderState state, int frame, int? totalFrameTarget, String message) {
     if (totalFrameTarget != null) {
-      session.recordActivity(state, (1 / totalFrameTarget) * frame, message);
+      session.recordActivity(state, (1 / totalFrameTarget) * frame,
+          message: message);
     } else {
       // capturing activity when recording (no time limit set)
-      session.recordActivity(state, null, message);
+      session.recordActivity(state, null, message: message);
     }
   }
 }

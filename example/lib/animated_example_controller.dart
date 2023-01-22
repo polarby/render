@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:render/render.dart';
 import 'package:video_player/video_player.dart';
 
 class ExampleAnimationController extends ChangeNotifier {
   final AnimationController animationController;
   final Animation colorAnimation;
   final VideoPlayerController videoController;
+  Stream<RenderNotifier>? renderStream;
 
   ExampleAnimationController({
     required TickerProvider vsync,
@@ -14,12 +18,16 @@ class ExampleAnimationController extends ChangeNotifier {
   }) {
     animationController.addListener(() {
       if (animationController.status == AnimationStatus.completed) {
-        animationController.stop();
         animationController.reset();
         videoController.seekTo(const Duration(microseconds: 0));
+        videoController.pause();
         notifyListeners();
       }
     });
+  }
+
+  void attach(Stream<RenderNotifier> stream){
+    renderStream = stream;
   }
 
   static Future<ExampleAnimationController> create(TickerProvider vsync) async {

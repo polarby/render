@@ -34,8 +34,6 @@ class _MyHomePageState extends State<MyHomePage>
   late final Future<ExampleAnimationController> init;
   final RenderController renderController = RenderController();
 
-  //final ScreenRecorderController screenRecorderController = ScreenRecorderController(pixelRatio: 5);
-
   @override
   void initState() {
     init = ExampleAnimationController.create(this);
@@ -70,49 +68,39 @@ class _MyHomePageState extends State<MyHomePage>
                   const Spacer(),
                   NavigationButtons(
                     motionRenderCallback: () async {
-                      print(
-                          "render widget, duration: ${functionController.videoController.value.duration}");
-                      print(
-                          "total frames: ${100 * functionController.videoController.value.duration.inSeconds}");
-
                       functionController.play();
                       final resultStream =
                           renderController.captureMotionWithStream(
                         functionController.videoController.value.duration,
-                        const MotionSettings(frameRate: 1, pixelRatio: 5),
+                        capturingSettings: const CapturingSettings(
+                            pixelRatio: 5, frameRate: 20),
+                        format: Mp4Format(
+                          scale: RenderScale.fullHD,
+                        ),
                       );
-
-                      resultStream.stream.listen((event) {
-                        if (event.isActivity) {
-                          final activity = event as RenderActivity;
-                          print("RenderActivity: ${activity.message} - "
-                              "${activity.state.name}, time remaining:"
-                              " ${activity.timeRemaining}, percentage:"
-                              " ${activity.progressPercentage}");
-                        }
+                      setState(() {
+                        functionController.attach(resultStream);
                       });
-                      final resultNotifier = await resultStream.stream
+                      final resultNotifier = await resultStream
                           .firstWhere((element) => element.isResult);
                       final result = resultNotifier as RenderResult;
-                      print(
-                          "Finished export: totalTime: ${result.totalRenderTime}");
-                      print("file exits: ${await result.output.exists()}");
-                      if (mounted) {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) =>
-                              AnimatedExamplePopUp(
-                            context: context,
-                            //video: result,
-                            imageBytes: result.output.readAsBytesSync(),
-                          ),
-                        );
-                      }
-                      await GallerySaver.saveImage(result.output.path);
-                      print("saved export to gallery");
+                      displayResult(result);
                     },
                     exampleAnimationController: functionController,
-                    imageRenderCallback: () {},
+                    imageRenderCallback: () async {
+                      final resultStream =
+                          renderController.captureImageWithStream(
+                        format: ImageFormat.png,
+                        capturingSettings: CapturingSettings(pixelRatio: 10),
+                      );
+                      setState(() {
+                        functionController.attach(resultStream);
+                      });
+                      final resultNotifier = await resultStream
+                          .firstWhere((element) => element.isResult);
+                      final result = resultNotifier as RenderResult;
+                      displayResult(result);
+                    },
                   ),
                 ],
               ),
@@ -123,5 +111,23 @@ class _MyHomePageState extends State<MyHomePage>
         },
       ),
     );
+  }
+
+  Future<void> displayResult(RenderResult result,
+      [bool saveToGallery = false]) async {
+    print("file exits: ${await result.output.exists()}");
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AnimatedExamplePopUp(
+          context: context,
+          result: result,
+        ),
+      );
+    }
+    if (saveToGallery) {
+      GallerySaver.saveImage(result.output.path)
+          .then((value) => print("saved export to gallery"));
+    }
   }
 }

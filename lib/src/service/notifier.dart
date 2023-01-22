@@ -1,7 +1,8 @@
 import 'dart:io';
-import 'package:render/src/process.dart';
 
-import '../render.dart';
+import 'package:render/src/service/settings.dart';
+
+import '../formats/abstract.dart';
 import 'exception.dart';
 
 abstract class RenderNotifier {
@@ -49,6 +50,10 @@ class RenderActivity extends RenderNotifier {
   ///in the front end to notifier user about the current state of rendering.
   final String? message;
 
+  /// Insight details to the current operation. This may be used for in depth
+  /// feedback and debugging
+  final String? details;
+
   ///The current operation of rendering
   final RenderState state;
 
@@ -60,8 +65,9 @@ class RenderActivity extends RenderNotifier {
     required this.state,
     required this.currentStateProgression,
     this.message,
+    this.details,
     required super.timestamp,
-  });
+  }) : assert(currentStateProgression >= 0.0 && currentStateProgression <= 1.0);
 
   /// The calculated expected amount of time needed until rendering is finished.
   /// This value is based on the execution time of previous operations and does
@@ -69,10 +75,10 @@ class RenderActivity extends RenderNotifier {
   /// If null, it currently has not enough data to predict
   /// the time duration.
   Duration? get timeRemaining {
-    final progress = progressPercentage;
-    if (progress == 0) return null;
+    final expectedTime = totalExpectedTime;
+    if (expectedTime == null) return null;
     return Duration(
-      milliseconds: (1 / progress * timestamp.inMilliseconds).toInt(),
+      milliseconds: expectedTime.inMilliseconds - timestamp.inMilliseconds,
     );
   }
 
@@ -94,10 +100,9 @@ class RenderActivity extends RenderNotifier {
   /// If null, it currently has not enough data to predict
   /// the time duration.
   Duration? get totalExpectedTime {
-    final remaining = timeRemaining;
-    if (remaining == null) return null;
-    return Duration(
-        milliseconds: timeRemaining!.inMilliseconds + timestamp.inMilliseconds);
+    final progress = progressPercentage;
+    if (progress == 0.0) return null;
+    return Duration(milliseconds: timestamp.inMilliseconds ~/ progress);
   }
 
   @override
@@ -118,12 +123,16 @@ class RenderResult extends RenderActivity {
   final File output;
 
   ///The settings used to create the output file.
-  final RenderSettings usedSettings;
+  final EndCapturingSettings usedSettings;
+
+  final RenderFormat format;
 
   RenderResult({
+    required this.format,
     required this.output,
     required this.usedSettings,
     super.message,
+    super.details,
     required super.timestamp,
   }) : super(
           state: RenderState.finishing,
@@ -175,6 +184,7 @@ enum RenderState {
   /// The expected processing share each part holds. This is relevant for
   /// calculating the expected time remain and progress percentage of rendering.
   /// Values are based on experimentation.
+  /// TODO: adapt for different processing types. Calculate for amount of layers
   double get processingShare {
     switch (this) {
       case RenderState.capturing:
