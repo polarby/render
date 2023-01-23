@@ -88,8 +88,15 @@ abstract class RenderFormat {
 }
 
 abstract class MotionFormat extends RenderFormat {
+  /// Additional audio for the motion format (if supported by output format)
+  /// Make sure that the audio file has the same length as the output video.
+  /// If you provide multiple audios, it will takes the shortest and will stop
+  /// at the last frame if the audio is longer than the video.
+  final List<RenderAudio>? audio;
+
   /// Formats that include some sort of motion and have multiple frames.
   const MotionFormat({
+    required this.audio,
     required super.scale,
     required super.interpolation,
     required super.handling,
@@ -111,10 +118,24 @@ abstract class MotionFormat extends RenderFormat {
       {required String inputPath,
       required String outputPath,
       required double frameRate}) {
+    final audioInput = audio != null && audio!.isNotEmpty
+        ? audio!.map((e) => "-i??${e.path}").join('??')
+        : null;
+    final mergeAudios = audio != null && audio!.isNotEmpty
+        ? ";${List.generate(audio!.length, (index) => "[${index + 1}:a]").join()}"
+            "amerge=inputs=${audio!.length}[a]"
+        : "";
+    final overwriteAudio = audio != null && audio!.isNotEmpty
+        ? "-map??[v]??-map??[a]??-c:v??libx264??-c:a??"
+            "aac??-shortest??-pix_fmt??yuv420p??-vsync??2"
+        : "-map??[v]??-pix_fmt??yuv420p";
     return FFmpegRenderOperation([
       "-i", inputPath, // retrieve  captures
-      "-vf",
-      "${scalingFilter != null ? "$scalingFilter," : ""}setpts=N/($frameRate*TB)",
+      audioInput,
+      "-filter_complex",
+      "[0:v]${scalingFilter != null ? "$scalingFilter," : ""}"
+          "setpts=N/($frameRate*TB)[v]$mergeAudios",
+      overwriteAudio,
       "-y",
       outputPath, // write output file
     ]);

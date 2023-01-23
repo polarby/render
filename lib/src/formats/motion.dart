@@ -3,10 +3,6 @@ import 'package:render/src/formats/service.dart';
 import 'abstract.dart';
 
 class MovFormat extends MotionFormat {
-  /// If this format should render transparency. Might not be supported by every
-  /// player
-  final bool transparency;
-
   /// MOV (QuickTime File Format) is a file format that is used to store video
   /// and audio data. It is a popular format for storing high-quality video and
   /// is often used in professional video editing and production. MOV files can
@@ -15,7 +11,7 @@ class MovFormat extends MotionFormat {
   /// platforms, including Mac and Windows computers, iOS and Android devices,
   /// and many other media players.
   const MovFormat({
-    this.transparency = false,
+    super.audio,
     super.scale,
     super.interpolation = Interpolation.bicubic,
   }) : super(
@@ -36,21 +32,6 @@ class MovFormat extends MotionFormat {
 
   @override
   String get extension => "mov";
-
-  @override
-  FFmpegRenderOperation processor(
-      {required String inputPath,
-      required String outputPath,
-      required double frameRate}) {
-    return FFmpegRenderOperation([
-      "-i", inputPath, // retrieve  captures
-      "-vf",
-      "${scalingFilter != null ? "$scalingFilter," : ""}setpts=N/($frameRate*TB)",
-      transparency ? "-vcodec??png" : null,
-      "-y",
-      outputPath, // write output file
-    ]);
-  }
 }
 
 class GifFormat extends MotionFormat {
@@ -84,6 +65,7 @@ class GifFormat extends MotionFormat {
           handling: FormatHandling.image,
           processShare: 0.2,
           scale: null,
+          audio: null,
           // Scaling is not supported for gif, as there is no significant improvement when using it.
           interpolation: Interpolation.bicubic,
         );
@@ -125,7 +107,6 @@ class GifFormat extends MotionFormat {
 }
 
 class Mp4Format extends MotionFormat {
-
   /// MP4 (MPEG-4 Part 14) is a digital multimedia container format most
   /// commonly used to store video and audio, but can also be used to store
   /// other data such as subtitles and still images. It is a standard format
@@ -134,6 +115,7 @@ class Mp4Format extends MotionFormat {
   /// the file extension ".mp4".
   /// Transparency is not supported.
   const Mp4Format({
+    super.audio,
     super.scale,
     super.interpolation = Interpolation.bicubic,
   }) : super(

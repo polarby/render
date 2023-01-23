@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
 import 'package:flutter/rendering.dart';
 import 'package:render/render.dart';
 import 'package:render/src/service/notifier.dart';
@@ -47,9 +47,9 @@ class RenderCapturer<K extends RenderFormat> {
   Future<RenderSession<K, EndCapturingSettings>> single() async {
     startTime = DateTime.now();
     final image = _captureContext();
-    _recordActivity(RenderState.capturing, 1,1, "Captured image.");
+    _recordActivity(RenderState.capturing, 1, 1, "Captured image.");
     await _handleCapture(image, 0);
-    _recordActivity(RenderState.handleCaptures, 1,1, "Handled image.");
+    _recordActivity(RenderState.handleCaptures, 1, 1, "Handled image.");
     final capturingDuration = Duration(
         milliseconds: DateTime.now().millisecondsSinceEpoch -
             startTime!.millisecondsSinceEpoch);
@@ -57,7 +57,7 @@ class RenderCapturer<K extends RenderFormat> {
   }
 
   /// Starts new capturing process for unknown duration
-  void start([Duration? duration]) {
+  void start([Duration? duration]) async {
     assert(!_rendering, "Cannot start new process, during an active one.");
     _rendering = true;
     startTime = DateTime.now();

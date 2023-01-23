@@ -1,7 +1,7 @@
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart';
-import 'package:ffmpeg_kit_flutter/ffmpeg_session.dart';
-import 'package:ffmpeg_kit_flutter/log.dart';
-import 'package:ffmpeg_kit_flutter/statistics.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit_config.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_session.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/log.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/statistics.dart';
 import 'package:flutter/material.dart';
 import 'package:render/render.dart';
 import 'package:render/src/service/session.dart';
@@ -75,6 +75,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
       },
       (Log log) {
         print("level: ${log.getLevel()}, logs: ${log.getMessage()}");
+        //session.recordLog(log.getMessage());
       },
       (Statistics statistics) {
         final progression = ((statistics.getTime() * 100) ~/

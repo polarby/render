@@ -34,25 +34,25 @@ native approach to editing images and videos. Use with own responsibility.
 
 **Table of Contents**
 
-- [Getting started](#-getting-started)
+- [🚀 Getting started](#-getting-started)
     - [Installing](#installing)
     - [Quick start](#quick-start)
     - [Usage](#usage)
         - [Layers](#layers)
         - [Out of context](#out-of-context)
         - [Handling stream & information flow](#handling-stream--information-flow)
-- [Compatibility](#compatibility)
+- [🔩 Compatibility](#-compatibility)
     - [Limitations and Performance](#limitations-and-performance)
     - [Supported Platforms](#supported-platforms)
     - [Exportable Formats](#exportable-formats)
         - [Custom formats](#custom-formats)
-- [Class documentation](#class-documentation)
+- [🗄️ Class documentation](#-class-documentation)
     - [Render class](#render-class)
     - [Render Controller](#rendercontroller-class)
     - [RenderLayer class](#renderlayer-class)
-- [Render: Under the hood](#render-under-the-hood)
-- [Known issues](#-known-issues)
-- [Additional information & Contribution](#additional-information--contribution)
+- [⚙️ Render: Under the hood](#-render-under-the-hood)
+- [⚠ Known issues](#-known-issues)
+- [📢 Additional information & Contribution](#-additional-information--contribution)
 
 # 🚀 Getting started
 
@@ -96,9 +96,15 @@ RenderLayer(
 
 #### Out of context
 
+Note that rendering out of context will still build and render each frame of the widget. It will not
+reduce processing time in any way. Although using `Render` package in flutter might be convenient
+for flutter user to use, it is highly recommended to edit videos (& images) and recreate your
+rendering widget in a native editing tool.
+
+
 #### Handling stream & information flow
 
-## Compatibility
+## 🔩 Compatibility
 
 ### Limitations and Performance
 
@@ -134,7 +140,7 @@ and [Image](https://api.flutter.dev/flutter/widgets/Image-class.html) visualizer
 
 #### Custom Formats
 
-## Class documentation
+## 🗄️ Class documentation
 
 ### `Render` class
 
@@ -156,14 +162,7 @@ Square : +getMessages() List~string~
 
 ### `RenderLayer` class
 
-## ⚠️ Known Issues
-
-* Platform views [cannot be rendered by flutter](https://github.com/flutter/flutter/issues/102866)
-  itself (Platform views examples: Google Maps, Camera, etc.).
-  There is also an active [issue](https://github.com/polarby/render/issues/4) to find an alternative
-  for `render` plugin.
-
-## `Render`: Under the hood
+## ⚙️ `Render`: Under the hood
 
 ```mermaid
 stateDiagram
@@ -188,7 +187,16 @@ current state of the child widget to the new frame and time. Each frame is writt
 directory, to then be processed by [Ffmpeg](https://pub.dev/packages/ffmpeg_kit_flutter) (a tool for
 video, audio and image processing), which then process each frame to the wanted output type.
 
-## Additional information & Contribution
+## ⚠️ Known Issues
 
-Contributions are very welcome and can be merged within hours if testing is successful. 
+* Platform views [cannot be rendered by flutter](https://github.com/flutter/flutter/issues/102866)
+  itself (Platform views examples: Google Maps, Camera, etc.).
+  There is also an active [issue](https://github.com/polarby/render/issues/4) to find an alternative
+  for `render` plugin.
+
+## 📢 Additional information & Contribution
+
+Contributions are very welcome and can be merged within hours if testing is successful.
+Please note that this is an open source project and is not maintained by a company, but only
+volunteers.
 

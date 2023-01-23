@@ -189,6 +189,16 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
     );
   }
 
+  /// Used to record log messages in the session.
+  void recordLog(String message) {
+    _notifier.add(
+      RenderLog(
+        timestamp: currentTimeStamp,
+        message: message,
+      ),
+    );
+  }
+
   /// A method that is used to record errors in the session.
   void recordError(RenderException exception, {bool fatal = true}) {
     _notifier.add(

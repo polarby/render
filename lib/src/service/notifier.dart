@@ -18,6 +18,8 @@ abstract class RenderNotifier {
   bool get isError;
 
   bool get isActivity;
+
+  bool get isLog;
 }
 
 /// Used to notify the user about an error that has occurred in the
@@ -43,6 +45,33 @@ class RenderError extends RenderNotifier {
 
   @override
   bool get isError => true;
+
+  @override
+  bool get isLog => false;
+}
+
+class RenderLog extends RenderNotifier {
+  /// Message of the current activity change. This message usually is an internal
+  /// message and is not suitable for front-end display.
+  final String message;
+
+  /// Used to notify the user about the current log of the rendering process.
+  RenderLog({
+    required this.message,
+    required super.timestamp,
+  });
+
+  @override
+  bool get isResult => false;
+
+  @override
+  bool get isActivity => false;
+
+  @override
+  bool get isError => false;
+
+  @override
+  bool get isLog => true;
 }
 
 class RenderActivity extends RenderNotifier {
@@ -113,6 +142,9 @@ class RenderActivity extends RenderNotifier {
 
   @override
   bool get isError => false;
+
+  @override
+  bool get isLog => false;
 }
 
 class RenderResult extends RenderActivity {
@@ -147,9 +179,6 @@ class RenderResult extends RenderActivity {
 
   @override
   bool get isActivity => false;
-
-  @override
-  bool get isError => false;
 }
 
 /// A state machine that is used to track the current state of the

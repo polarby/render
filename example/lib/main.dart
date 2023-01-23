@@ -74,8 +74,15 @@ class _MyHomePageState extends State<MyHomePage>
                         functionController.videoController.value.duration,
                         capturingSettings: const CapturingSettings(
                             pixelRatio: 5, frameRate: 20),
-                        format: Mp4Format(
-                          scale: RenderScale.fullHD,
+                        format: MovFormat(
+                          audio: [
+
+                            RenderAudio.url(
+                              Uri.parse(
+                                'https://www.fluttercampus.com/video.mp4',
+                              ),
+                            ),
+                          ],
                         ),
                       );
                       setState(() {

@@ -5,8 +5,9 @@ import 'package:video_player/video_player.dart';
 class AnimatedExamplePopUp extends StatelessWidget {
   final BuildContext context;
   final RenderResult result;
+  VideoPlayerController? controller;
 
-  const AnimatedExamplePopUp({
+  AnimatedExamplePopUp({
     Key? key,
     required this.result,
     required this.context,
@@ -16,42 +17,75 @@ class AnimatedExamplePopUp extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Render result'),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          result.format.handling.isVideo
-              ? FutureBuilder(future: () async {
-                  final controller = VideoPlayerController.file(result.output);
-                  controller.initialize();
-                  controller.setLooping(true);
-                  controller.play();
-                  return controller;
-                }(), builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.connectionState == ConnectionState.done) {
-                    return Expanded(child: VideoPlayer(snapshot.data!));
-                  } else {
-                    return const Text("Error loading file");
-                  }
-                })
-              : Expanded(child: Image.file(result.output)),
-          const Divider(
-            thickness: 5,
-          ),
-          Text(
-            "Total render time: ${result.totalRenderTime.inMinutes}:"
-            "${result.totalRenderTime.inSeconds}:"
-            "${result.totalRenderTime.inMilliseconds}\n"
-            "Format: ${result.format.extension}\n"
-            "Capturing duration: ${result.usedSettings.capturingDuration}",
-            textAlign: TextAlign.start,
-          ),
-        ],
-      ),
+      content: result.format.handling.isVideo
+          ? FutureBuilder(future: () async {
+              controller = VideoPlayerController.file(result.output);
+              await controller!.initialize();
+              //await controller.setLooping(true);
+              controller!.play();
+              return controller;
+            }(), builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.connectionState == ConnectionState.done &&
+                  snapshot.data != null) {
+                return Column(
+                  children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: snapshot.data?.value.size.width ?? 0,
+                          height: snapshot.data?.value.size.height ?? 0,
+                          child: VideoPlayer(snapshot.data!),
+                        ),
+                      ),
+                    ),
+                    const Divider(
+                      thickness: 5,
+                    ),
+                    Text(
+                      "Total render time: ${result.totalRenderTime.inMinutes}:"
+                      "${result.totalRenderTime.inSeconds}:"
+                      "${result.totalRenderTime.inMilliseconds}\n"
+                      "Format: ${result.format.extension}\n"
+                      "Video duration: ${controller?.value.duration}",
+                      textAlign: TextAlign.start,
+                    ),
+                  ],
+                );
+              } else {
+                return const Expanded(
+                  child: Center(
+                    child: Text(
+                      "Error loading file",
+                      style: TextStyle(
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            })
+          : Column(
+              children: [
+                Expanded(child: Image.file(result.output)),
+                const Divider(
+                  thickness: 5,
+                ),
+                Text(
+                  "Total render time: ${result.totalRenderTime.inMinutes}:"
+                  "${result.totalRenderTime.inSeconds}:"
+                  "${result.totalRenderTime.inMilliseconds}\n"
+                  "Format: ${result.format.extension}",
+                  textAlign: TextAlign.start,
+                ),
+              ],
+            ),
       actions: <Widget>[
         TextButton(
           onPressed: () {
+            controller?.pause();
             Navigator.of(this.context).pop();
           },
           child: const Text('Great!'),
