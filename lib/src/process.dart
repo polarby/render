@@ -1,21 +1,20 @@
+import 'dart:io';
+
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit_config.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_session.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/log.dart';
 import 'package:ffmpeg_kit_flutter_https_gpl/statistics.dart';
-import 'package:flutter/material.dart';
-import 'package:render/render.dart';
+import 'package:render/src/formats/abstract.dart';
+import 'package:render/src/service/notifier.dart';
 import 'package:render/src/service/session.dart';
-import 'package:rich_console/printRich.dart';
+import 'package:render/src/service/settings.dart';
+import 'package:render/src/service/task_identifier.dart';
 import 'service/exception.dart';
 
 abstract class RenderProcessor<T extends RenderFormat> {
-  final RenderSession<T, EndCapturingSettings> session;
+  final RenderSession<T, RealRenderSettings> session;
 
-  ///Duration of capturing if applicable (not on images)
-
-  RenderProcessor({
-    required this.session,
-  });
+  RenderProcessor(this.session);
 
   bool _processing = false;
 
@@ -27,41 +26,44 @@ abstract class RenderProcessor<T extends RenderFormat> {
       throw const RenderException(
           "Cannot start new process, during an active one.");
     }
-    // * Preparation
     _processing = true;
-    final outputFile =
-        session.createOutputFile("output_main.${session.format.extension}");
-    // * Receive operation processing instructions
-    final operation = session.format.processor(
-      inputPath: inputPath,
-      outputPath: outputFile.path,
-      frameRate: session.settings.realFrameRate,
-    );
-    // * Execute processing instructions
     try {
-      printRich("execute ffmpeg: ${operation.arguments}",
-          foreground: Colors.orange);
-      await _executeCommand(
-        operation.arguments,
-        progressShare: session.format.processShare,
-      );
-      //TODO: add layers
-      session.recordResult(outputFile);
+      final output = await _processTask(session.task,
+          session.format.processShare); //TODO: correct process share
+      session.recordResult(output);
       _processing = false;
     } on RenderException catch (error) {
-      session.recordError(error);
+      session.recordError(error, fatal: true);
     }
+  }
+
+  /// Processes task frames and writes the output with the specific format
+  /// Returns the process output file.
+  Future<File> _processTask(TaskIdentifier task, double progressShare) async {
+    final mainOutputFile =
+        session.createOutputFile("output_main.${session.format.extension}");
+    // Receive main operation processing instructions
+    final operation = session.format.processor(
+      inputPath: inputPath,
+      outputPath: mainOutputFile.path,
+      frameRate: session.settings.realFrameRate,
+    );
+    await _executeCommand(
+      operation.arguments,
+      progressShare: progressShare,
+    );
+    return mainOutputFile;
   }
 
   /// Wrapper around the FFmpeg command execution. Takes care of notifying the
   /// session about the progress of execution.
   Future<void> _executeCommand(List<String> command,
-      {bool isLayer = false, required double progressShare}) async {
+      {required double progressShare}) async {
     final ffmpegSession = await FFmpegSession.create(
       command,
       (ffmpegSession) async {
         session.recordActivity(
-          isLayer ? RenderState.layerProcessing : RenderState.mainProcessing,
+          RenderState.processing,
           progressShare,
           message: "Completed ffmpeg operation",
           details: "[async notification] Ffmpeg session completed: "
@@ -75,7 +77,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
       },
       (Log log) {
         print("level: ${log.getLevel()}, logs: ${log.getMessage()}");
-        //session.recordLog(log.getMessage());
+        session.recordLog(log.getMessage());
       },
       (Statistics statistics) {
         final progression = ((statistics.getTime() * 100) ~/
@@ -83,7 +85,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
                 .clamp(0, 100) /
             100;
         session.recordActivity(
-          isLayer ? RenderState.layerProcessing : RenderState.mainProcessing,
+          RenderState.processing,
           progression.toDouble(),
           message: "Processing captures",
         );
@@ -92,28 +94,25 @@ abstract class RenderProcessor<T extends RenderFormat> {
     await FFmpegKitConfig.ffmpegExecute(ffmpegSession).timeout(
       session.settings.processTimeout,
       onTimeout: () {
-        printError("ffmpeg session timeout");
+        session.recordError(
+          const RenderException("Processing session timeout"),
+          fatal: true,
+        );
         ffmpegSession.cancel();
       },
     );
   }
-
-//TODO: complex filter (layers)
 }
 
 class ImageProcessor extends RenderProcessor<ImageFormat> {
-  ImageProcessor({
-    required super.session,
-  });
+  ImageProcessor(super.session);
 
   @override
   String get inputPath => "${session.inputDirectory}/frame0.png";
 }
 
 class MotionProcessor extends RenderProcessor<MotionFormat> {
-  MotionProcessor({
-    required super.session,
-  });
+  MotionProcessor(super.session);
 
   @override
   String get inputPath => "${session.inputDirectory}/frame%d.png";

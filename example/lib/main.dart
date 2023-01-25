@@ -32,7 +32,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late final Future<ExampleAnimationController> init;
-  final RenderController renderController = RenderController();
+  final RenderController renderController =
+      RenderController(logLevel: LogLevel.debug);
 
   @override
   void initState() {
@@ -69,44 +70,33 @@ class _MyHomePageState extends State<MyHomePage>
                   NavigationButtons(
                     motionRenderCallback: () async {
                       functionController.play();
-                      final resultStream =
-                          renderController.captureMotionWithStream(
+                      final stream = renderController.captureMotionWithStream(
                         functionController.videoController.value.duration,
-                        capturingSettings: const CapturingSettings(
-                            pixelRatio: 5, frameRate: 20),
+                        settings: const MotionSettings(),
                         format: MovFormat(
                           audio: [
-
                             RenderAudio.url(
                               Uri.parse(
-                                'https://www.fluttercampus.com/video.mp4',
+                                'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
                               ),
                             ),
                           ],
                         ),
                       );
                       setState(() {
-                        functionController.attach(resultStream);
+                        functionController.attach(stream);
                       });
-                      final resultNotifier = await resultStream
+                      final result = await stream
                           .firstWhere((element) => element.isResult);
-                      final result = resultNotifier as RenderResult;
-                      displayResult(result);
+                      displayResult(result as RenderResult);
                     },
                     exampleAnimationController: functionController,
                     imageRenderCallback: () async {
-                      final resultStream =
-                          renderController.captureImageWithStream(
+                      final imageResult = await renderController.captureImage(
                         format: ImageFormat.png,
-                        capturingSettings: CapturingSettings(pixelRatio: 10),
+                        settings: const ImageSettings(pixelRatio: 3),
                       );
-                      setState(() {
-                        functionController.attach(resultStream);
-                      });
-                      final resultNotifier = await resultStream
-                          .firstWhere((element) => element.isResult);
-                      final result = resultNotifier as RenderResult;
-                      displayResult(result);
+                      displayResult(imageResult);
                     },
                   ),
                 ],

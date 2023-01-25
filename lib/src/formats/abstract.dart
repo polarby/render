@@ -17,7 +17,7 @@ abstract class RenderFormat {
   /// take 50% of the render time to finish. Meaning that if the capturing time
   /// is 2min the expected processing time will also be 2min.
   ///
-  /// Note that [RenderLayer]'s and sub-render tasks are not considered in this
+  /// Note that sub-render tasks are not considered in this
   /// value and will be calculated separately, but based on this value.
   final double processShare;
 

@@ -3,24 +3,27 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:render/render.dart';
 import 'package:render/src/service/notifier.dart';
 import 'package:render/src/service/session.dart';
 import 'package:render/src/service/settings.dart';
+import 'package:render/src/service/task_identifier.dart';
+import 'formats/abstract.dart';
 import 'service/exception.dart';
 
 class RenderCapturer<K extends RenderFormat> {
   /// Settings of how each frame should be rendered.
-  final CapturingSettings settings;
 
   /// Current session captures should be assigned to.
-  final RenderSession<K, CapturingSettings> session;
+  final RenderSession<K, RenderSettings> session;
 
-  RenderCapturer({
-    required this.settings,
-    required this.session,
-  });
+  RenderCapturer(this.session);
+
+  int _activeHandlers = 0;
+
+  /// Captures that are yet to be handled. Handled images will be disposed.
+  final List<ui.Image> _unhandledCaptures = [];
 
   /// Current image handling process. Handlers are being handles asynchronous
   /// as conversion and file writing is involved.
@@ -32,10 +35,11 @@ class RenderCapturer<K extends RenderFormat> {
   ///The time position of capture start of the duration of the scheduler binding.
   Duration? startingDuration;
 
+  /// Start tim of capturing
   DateTime? startTime;
 
   /// Runs a capturing process for a defined time. Returns capturing time duration.
-  Future<RenderSession<K, EndCapturingSettings>> run(Duration duration) async {
+  Future<RenderSession<K, RealRenderSettings>> run(Duration duration) async {
     start(duration);
 
     await Future.delayed(duration);
@@ -44,12 +48,14 @@ class RenderCapturer<K extends RenderFormat> {
   }
 
   /// Takes a single capture
-  Future<RenderSession<K, EndCapturingSettings>> single() async {
+  Future<RenderSession<K, RealRenderSettings>> single() async {
     startTime = DateTime.now();
-    final image = _captureContext();
-    _recordActivity(RenderState.capturing, 1, 1, "Captured image.");
-    await _handleCapture(image, 0);
-    _recordActivity(RenderState.handleCaptures, 1, 1, "Handled image.");
+    _captureFrame(0, 1);
+    await Future.doWhile(() async {
+      //await all active capture handlers
+      await Future.wait(_handlers);
+      return _handlers.length < _unhandledCaptures.length;
+    });
     final capturingDuration = Duration(
         milliseconds: DateTime.now().millisecondsSinceEpoch -
             startTime!.millisecondsSinceEpoch);
@@ -72,16 +78,21 @@ class RenderCapturer<K extends RenderFormat> {
   }
 
   /// Finishes current capturing process. Returns the total capturing time.
-  Future<RenderSession<K, EndCapturingSettings>> finish() async {
+  Future<RenderSession<K, RealRenderSettings>> finish() async {
     assert(_rendering, "Cannot finish capturing as, no active capturing.");
     _rendering = false;
     startingDuration = null;
     final capturingDuration = Duration(
         milliseconds: DateTime.now().millisecondsSinceEpoch -
             startTime!.millisecondsSinceEpoch);
-    final frameAmount = _handlers.length;
-    await Future.wait(_handlers); //await all active capture handlers
+    final frameAmount = _unhandledCaptures.length;
+    await Future.doWhile(() async {
+      //await all active capture handlers
+      await Future.wait(_handlers);
+      return _handlers.length < _unhandledCaptures.length;
+    });
     _handlers.clear();
+    _unhandledCaptures.clear();
     return session.upgrade(capturingDuration, frameAmount);
   }
 
@@ -92,7 +103,7 @@ class RenderCapturer<K extends RenderFormat> {
     Duration? duration,
   }) async {
     if (!_rendering) return;
-    final targetFrameRate = session.settings.frameRate;
+    final targetFrameRate = session.settings.asMotion?.frameRate ?? 1;
     final relativeTimeStamp =
         binderTimeStamp - (startingDuration ?? Duration.zero);
     final nextMilliSecond = (1 / targetFrameRate) * frame * 1000;
@@ -111,10 +122,7 @@ class RenderCapturer<K extends RenderFormat> {
     try {
       final totalFrameTarget =
           duration != null ? duration.inSeconds * targetFrameRate : null;
-      final image = _captureContext();
-      _handlers.add(_handleCapture(image, frame, totalFrameTarget));
-      _recordActivity(RenderState.capturing, frame, totalFrameTarget,
-          "Captured frame $frame");
+      _captureFrame(frame, totalFrameTarget);
     } on RenderException catch (exception) {
       session.recordError(
         exception,
@@ -131,30 +139,32 @@ class RenderCapturer<K extends RenderFormat> {
   }
 
   /// Converting the raw image data to a png file and writing the capture.
-  Future<void> _handleCapture(ui.Image capture, int captureNumber,
-      [int? totalFrameTarget]) async {
+  Future<void> _handleCapture(
+    int captureNumber, [
+    int? totalFrameTarget,
+  ]) async {
+    final ui.Image capture = _unhandledCaptures.elementAt(captureNumber);
+    _activeHandlers++;
     try {
       // * retrieve bytes
+      // toByteData(format: ui.ImageByteFormat.png) takes way longer than raw
+      // and then converting to png with ffmpeg
       final ByteData? byteData =
           await capture.toByteData(format: ui.ImageByteFormat.rawRgba);
       final rawIntList = byteData!.buffer.asInt8List();
       // * write raw file for processing
-      final rawFile =
-          session.createInputFile("frameHandling/frame_raw$captureNumber.bmp");
+      final rawFile = session
+          .createProcessFile("frameHandling/frame_raw$captureNumber.bmp");
       await rawFile.writeAsBytes(rawIntList);
       // * write & convert file (to save storage)
       final file = session.createInputFile("frame$captureNumber.png");
       await FFmpegKit.executeWithArguments([
         "-y",
-        "-f",
-        "rawvideo",
-        "-pixel_format",
-        "rgba",
-        "-video_size",
-        "${capture.width}x${capture.height}",
-        "-i",
-        rawFile.path,
-        file.path,
+        "-f", "rawvideo", // specify input format
+        "-pixel_format", "rgba", // maintain transparency
+        "-video_size", "${capture.width}x${capture.height}", // set capture size
+        "-i", rawFile.path, // input the raw frame
+        file.path, //out put png
       ]);
       // * finish
       capture.dispose();
@@ -167,26 +177,120 @@ class RenderCapturer<K extends RenderFormat> {
     } catch (e) {
       session.recordError(
         RenderException(
-          "Handling frame context unsuccessful. Trying next frame.",
+          "Handling frame $captureNumber unsuccessful.",
           details: e,
         ),
         fatal: false,
       );
     }
+    _activeHandlers--;
+    _triggerHandler(totalFrameTarget);
+  }
+
+  /// Triggers the next handler, if within allowed simultaneous handlers
+  /// and images still available.
+  void _triggerHandler([int? totalFrameTarget]) {
+    final nextCaptureIndex = _handlers.length;
+    if (_activeHandlers <
+            (session.settings.asMotion?.simultaneousCaptureHandlers ?? 1) &&
+        nextCaptureIndex < _unhandledCaptures.length) {
+      _handlers.add(_handleCapture(nextCaptureIndex, totalFrameTarget));
+    }
+  }
+
+  /// Captures associated task of this frame
+  void _captureFrame(int frameNumber, [int? totalFrameTarget]) {
+    ui.Image image;
+    if (session.task is KeyIdentifier) {
+      image = _captureContext((session.task as KeyIdentifier).key);
+    } else if (session.task is WidgetIdentifier) {
+      image = _captureWidget((session.task as WidgetIdentifier).widget);
+    } else {
+      throw const RenderException("Could not identify render task.");
+    }
+    _unhandledCaptures.add(image);
+    _triggerHandler(totalFrameTarget);
+    _recordActivity(RenderState.capturing, frameNumber, totalFrameTarget,
+        "Captured frame $frameNumber");
   }
 
   /// Using the `RenderRepaintBoundary` to capture the current frame.
-  ui.Image _captureContext() {
+  ui.Image _captureContext(GlobalKey key) {
     try {
-      final renderObject = session.renderKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final renderObject =
+          key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (renderObject == null) {
         throw const RenderException(
           "Capturing frame context unsuccessful as context is null."
           " Trying next frame.",
         );
       }
-      return renderObject.toImageSync(pixelRatio: settings.pixelRatio);
+      return renderObject.toImageSync(pixelRatio: session.settings.pixelRatio);
+    } catch (e) {
+      throw RenderException(
+        "Unknown error while capturing frame context. Trying next frame.",
+        details: e,
+      );
+    }
+  }
+
+  /// Captures a widget-frame that is not build in a widget tree.
+  /// Inspired by [screenshot plugin](https://github.com/SachinGanesh/screenshot)
+  ui.Image _captureWidget(Widget widget) {
+    try {
+      final RenderRepaintBoundary repaintBoundary = RenderRepaintBoundary();
+      Size logicalSize = ui.window.physicalSize / ui.window.devicePixelRatio;
+      Size imageSize = ui.window.physicalSize;
+
+      assert(logicalSize.aspectRatio.toStringAsPrecision(5) ==
+          imageSize.aspectRatio.toStringAsPrecision(5));
+
+      final RenderView renderView = RenderView(
+        window: ui.window,
+        child: RenderPositionedBox(
+            alignment: Alignment.center, child: repaintBoundary),
+        configuration: ViewConfiguration(
+          size: logicalSize,
+          devicePixelRatio: session.settings.pixelRatio,
+        ),
+      );
+
+      final PipelineOwner pipelineOwner = PipelineOwner();
+      final BuildOwner buildOwner =
+          BuildOwner(focusManager: FocusManager(), onBuildScheduled: () {});
+
+      pipelineOwner.rootNode = renderView;
+      renderView.prepareInitialFrame();
+
+      final RenderObjectToWidgetElement<RenderBox> rootElement =
+          RenderObjectToWidgetAdapter<RenderBox>(
+              container: repaintBoundary,
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: widget,
+              )).attachToRenderTree(
+        buildOwner,
+      );
+      buildOwner.buildScope(
+        rootElement,
+      );
+      buildOwner.finalizeTree();
+
+      pipelineOwner.flushLayout();
+      pipelineOwner.flushCompositingBits();
+      pipelineOwner.flushPaint();
+
+      ui.Image image =
+          repaintBoundary.toImageSync(pixelRatio: session.settings.pixelRatio);
+      try {
+        /// Dispose All widgets
+        rootElement.visitChildren((Element element) {
+          rootElement.deactivateChild(element);
+        });
+        buildOwner.finalizeTree();
+      } catch (_) {}
+
+      return image;
     } catch (e) {
       throw RenderException(
         "Unknown error while capturing frame context. Trying next frame.",

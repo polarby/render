@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 class ExampleAnimationController extends ChangeNotifier {
   final AnimationController animationController;
   final Animation colorAnimation;
+  final Animation<int> positionAnimation;
   final VideoPlayerController videoController;
   Stream<RenderNotifier>? renderStream;
 
@@ -15,6 +16,7 @@ class ExampleAnimationController extends ChangeNotifier {
     required this.videoController,
     required this.animationController,
     required this.colorAnimation,
+    required this.positionAnimation,
   }) {
     animationController.addListener(() {
       if (animationController.status == AnimationStatus.completed) {
@@ -26,13 +28,13 @@ class ExampleAnimationController extends ChangeNotifier {
     });
   }
 
-  void attach(Stream<RenderNotifier> stream){
+  void attach(Stream<RenderNotifier> stream) {
     renderStream = stream;
   }
 
   static Future<ExampleAnimationController> create(TickerProvider vsync) async {
     final videoController = VideoPlayerController.network(
-      'https://www.fluttercampus.com/video.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
       // 1 min: https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4
       // 4 sec: 'https://www.fluttercampus.com/video.mp4'
     );
@@ -41,8 +43,11 @@ class ExampleAnimationController extends ChangeNotifier {
         vsync: vsync, duration: videoController.value.duration);
     final colorAnimation = ColorTween(begin: Colors.blue, end: Colors.yellow)
         .animate(animationController);
+    final positionAnimation =
+        IntTween(begin: 0, end: 50).animate(animationController);
     return ExampleAnimationController(
       vsync: vsync,
+      positionAnimation: positionAnimation,
       videoController: videoController,
       animationController: animationController,
       colorAnimation: colorAnimation,

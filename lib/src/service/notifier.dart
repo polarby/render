@@ -1,7 +1,5 @@
 import 'dart:io';
-
 import 'package:render/src/service/settings.dart';
-
 import '../formats/abstract.dart';
 import 'exception.dart';
 
@@ -13,13 +11,16 @@ abstract class RenderNotifier {
     required this.timestamp,
   });
 
-  bool get isResult;
+  @override
+  String toString();
 
-  bool get isError;
+  bool get isResult => this is RenderResult;
 
-  bool get isActivity;
+  bool get isError => this is RenderError;
 
-  bool get isLog;
+  bool get isActivity => this is RenderActivity;
+
+  bool get isLog => this is RenderLog;
 }
 
 /// Used to notify the user about an error that has occurred in the
@@ -38,16 +39,9 @@ class RenderError extends RenderNotifier {
   });
 
   @override
-  bool get isResult => false;
-
-  @override
-  bool get isActivity => false;
-
-  @override
-  bool get isError => true;
-
-  @override
-  bool get isLog => false;
+  String toString() {
+    return "RenderError(timestamp: $timestamp, exception: $exception, fatal: $fatal)";
+  }
 }
 
 class RenderLog extends RenderNotifier {
@@ -62,16 +56,9 @@ class RenderLog extends RenderNotifier {
   });
 
   @override
-  bool get isResult => false;
-
-  @override
-  bool get isActivity => false;
-
-  @override
-  bool get isError => false;
-
-  @override
-  bool get isLog => true;
+  String toString() {
+    return "RenderLog(timestamp: $timestamp, message: $message)";
+  }
 }
 
 class RenderActivity extends RenderNotifier {
@@ -135,27 +122,27 @@ class RenderActivity extends RenderNotifier {
   }
 
   @override
-  bool get isResult => false;
-
-  @override
-  bool get isActivity => true;
-
-  @override
-  bool get isError => false;
-
-  @override
-  bool get isLog => false;
+  String toString() {
+    return "RenderActivity(timestamp: $timestamp, state: ${state.name} message:"
+        " $message, ${details != null ? "details: $details, " : ""}"
+        "timeRemaining: ${timeRemaining?.inMinutes}:"
+        "${timeRemaining?.inSeconds},"
+        " progressPercentage: "
+        "${(progressPercentage * 100).toStringAsPrecision(3)}%,"
+        " totalExpectedTime: ${totalExpectedTime?.inMinutes}:"
+        "${totalExpectedTime?.inSeconds})";
+  }
 }
 
 class RenderResult extends RenderActivity {
-  ///The output file. Note that the file is stored in a temporary directory, all
-  ///data might be deleted any time. To store permanently make sure to write it
-  ///to a permanent directory (see getApplicationDocumentsDirectory()
-  ///via [path_provider](https://pub.dev/packages/path_provider) plugin)
+  /// The output file. Note that the file is stored in a temporary directory, all
+  /// data might be deleted any time. To store permanently make sure to write it
+  /// to a permanent directory (see getApplicationDocumentsDirectory()
+  /// via [path_provider](https://pub.dev/packages/path_provider) plugin)
   final File output;
 
   ///The settings used to create the output file.
-  final EndCapturingSettings usedSettings;
+  final RealRenderSettings usedSettings;
 
   final RenderFormat format;
 
@@ -175,18 +162,18 @@ class RenderResult extends RenderActivity {
   Duration get totalRenderTime => timestamp;
 
   @override
-  bool get isResult => true;
-
-  @override
-  bool get isActivity => false;
+  String toString() {
+    return "RenderResult(timestamp: $timestamp, "
+        "${message != null ? "message: $message, " : ""}"
+        "totalRenderTime: $totalRenderTime)";
+  }
 }
 
 /// A state machine that is used to track the current state of the
 /// rendering process.
 /// ! This enum is order sensitive
 enum RenderState {
-  /// Process of taking the RepaintBoundary of the widget and layers,
-  /// frame by frame.
+  /// Process of taking the RepaintBoundary of the widget frame by frame.
   /// Note that the handling of captures already starts in this process
   /// (see [handleCaptures])
   capturing,
@@ -199,12 +186,7 @@ enum RenderState {
 
   /// Main processing of frames to convert to the dedicated file format.
   /// This is separated in [ImageRenderProcess] and [MotionRenderProcess].
-  mainProcessing,
-
-  /// Processing of layers equals the [mainProcessing] sequence with the
-  /// exception, that processing is first done on layers themselves and later
-  /// applied to mainProcessing result, to reduce double rendering.
-  layerProcessing,
+  processing,
 
   /// Disposing of session and returning result. This state usually is not
   /// asynchronous and just represents the end state.
@@ -213,19 +195,29 @@ enum RenderState {
   /// The expected processing share each part holds. This is relevant for
   /// calculating the expected time remain and progress percentage of rendering.
   /// Values are based on experimentation.
-  /// TODO: adapt for different processing types. Calculate for amount of layers
   double get processingShare {
     switch (this) {
       case RenderState.capturing:
         return 0.6;
       case RenderState.handleCaptures:
         return 0.1;
-      case RenderState.mainProcessing:
-        return 0.15;
-      case RenderState.layerProcessing:
-        return 0.15;
+      case RenderState.processing:
+        return 0.3;
       case RenderState.finishing:
         return 0;
     }
   }
+}
+
+/// Which logs should be displayed in the console or notification stream
+/// during rendering. [RenderResult] will always be displayed.
+enum LogLevel {
+  /// No logging
+  none,
+
+  /// Main activity, which includes all [RenderActivity]
+  activity,
+
+  /// Debug logging, all [RenderActivity] and [RenderLog] notifications
+  debug
 }

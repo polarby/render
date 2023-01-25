@@ -21,7 +21,7 @@ class AnimatedExamplePopUp extends StatelessWidget {
           ? FutureBuilder(future: () async {
               controller = VideoPlayerController.file(result.output);
               await controller!.initialize();
-              //await controller.setLooping(true);
+              await controller!.setLooping(true);
               controller!.play();
               return controller;
             }(), builder: (context, snapshot) {
@@ -41,27 +41,35 @@ class AnimatedExamplePopUp extends StatelessWidget {
                         ),
                       ),
                     ),
+                    VideoProgressIndicator(
+                      snapshot.data!,
+                      allowScrubbing: true,
+                      colors: const VideoProgressColors(
+                        backgroundColor: Colors.red,
+                        bufferedColor: Colors.black,
+                        playedColor: Colors.blueAccent,
+                      ),
+                    ),
                     const Divider(
-                      thickness: 5,
+                      thickness: 1,
                     ),
                     Text(
                       "Total render time: ${result.totalRenderTime.inMinutes}:"
                       "${result.totalRenderTime.inSeconds}:"
                       "${result.totalRenderTime.inMilliseconds}\n"
                       "Format: ${result.format.extension}\n"
-                      "Video duration: ${controller?.value.duration}",
+                      "Video duration: ${controller?.value.duration}\n"
+                      "Size: ${result.output.lengthSync() / 1000000} MB",
                       textAlign: TextAlign.start,
                     ),
                   ],
                 );
               } else {
-                return const Expanded(
-                  child: Center(
-                    child: Text(
-                      "Error loading file",
-                      style: TextStyle(
-                        color: Colors.red,
-                      ),
+                return Center(
+                  child: Text(
+                    "Error loading file: ${snapshot.error}",
+                    style: const TextStyle(
+                      color: Colors.red,
                     ),
                   ),
                 );
@@ -71,13 +79,14 @@ class AnimatedExamplePopUp extends StatelessWidget {
               children: [
                 Expanded(child: Image.file(result.output)),
                 const Divider(
-                  thickness: 5,
+                  thickness: 2,
                 ),
                 Text(
                   "Total render time: ${result.totalRenderTime.inMinutes}:"
                   "${result.totalRenderTime.inSeconds}:"
                   "${result.totalRenderTime.inMilliseconds}\n"
-                  "Format: ${result.format.extension}",
+                  "Format: ${result.format.extension}\n"
+                  "Size: ${result.output.lengthSync() / 1000000} MB",
                   textAlign: TextAlign.start,
                 ),
               ],
@@ -86,6 +95,7 @@ class AnimatedExamplePopUp extends StatelessWidget {
         TextButton(
           onPressed: () {
             controller?.pause();
+            controller?.dispose();
             Navigator.of(this.context).pop();
           },
           child: const Text('Great!'),

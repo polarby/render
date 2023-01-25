@@ -1,19 +1,16 @@
 import 'dart:async';
 import 'dart:io';
-
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:render/src/service/settings.dart';
+import 'package:render/src/service/task_identifier.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../render.dart';
 import '../formats/abstract.dart';
 import 'exception.dart';
 import 'notifier.dart';
 
 /// A detached render session is a render session that is not attached to a view
-class DetachedRenderSession<T extends RenderFormat,
-    K extends CapturingSettings> {
+class DetachedRenderSession<T extends RenderFormat, K extends RenderSettings> {
   /// Pointer to session files and operation.
   final String sessionId;
 
@@ -37,9 +34,17 @@ class DetachedRenderSession<T extends RenderFormat,
 
   final T format;
 
+  /// What notifications should be displayed
+  final LogLevel logLevel;
+
+  /// Binding to the Context of the [Render] widget.
+  final SchedulerBinding binding;
+
   /// A class that holds information about the current detached session. Ranging
   /// from directories to session identification.
   DetachedRenderSession({
+    required this.logLevel,
+    required this.binding,
     required this.outputDirectory,
     required this.inputDirectory,
     required this.sessionId,
@@ -53,11 +58,13 @@ class DetachedRenderSession<T extends RenderFormat,
   /// Attach a session by initializing RenderPaint and Context values by
   /// extending with [RenderSession]
   static Future<DetachedRenderSession<T, K>>
-      create<T extends RenderFormat, K extends CapturingSettings>(
-          T format, K settings) async {
+      create<T extends RenderFormat, K extends RenderSettings>(
+          T format, K settings, LogLevel logLevel) async {
     final tempDir = await getTemporaryDirectory();
     final sessionId = const Uuid().v4();
     return DetachedRenderSession<T, K>(
+      logLevel: logLevel,
+      binding: SchedulerBinding.instance,
       outputDirectory: "${tempDir.path}/render/$sessionId/output",
       inputDirectory: "${tempDir.path}/render/$sessionId/input",
       processDirectory: "${tempDir.path}/render/$sessionId/process",
@@ -88,13 +95,11 @@ class DetachedRenderSession<T extends RenderFormat,
       _createFile("$processDirectory/$subPath");
 }
 
-class RenderSession<T extends RenderFormat, K extends CapturingSettings>
+class RenderSession<T extends RenderFormat, K extends RenderSettings>
     extends DetachedRenderSession<T, K> {
-  /// Key to the RepaintBoundary of the [Render] widget.
-  final GlobalKey renderKey;
-
-  /// Binding to the Context of the [Render] widget.
-  final SchedulerBinding binding;
+  /// Used to identify the tasks that should be rendered. This must include
+  /// a main rendering task.
+  final TaskIdentifier task;
 
   /// Session notifier to all activity in this session.
   final StreamController<RenderNotifier> _notifier;
@@ -107,6 +112,7 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
   /// used to pass information between the different parts of the rendering
   /// process.
   RenderSession({
+    required super.logLevel,
     required super.settings,
     required super.inputDirectory,
     required super.outputDirectory,
@@ -114,8 +120,8 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
     required super.sessionId,
     required super.temporaryDirectory,
     required super.format,
-    required this.binding,
-    required this.renderKey,
+    required super.binding,
+    required this.task,
     required StreamController<RenderNotifier> notifier,
     DateTime? startTime,
   })  : _notifier = notifier,
@@ -128,12 +134,13 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
   RenderSession.fromDetached({
     required DetachedRenderSession<T, K> detachedSession,
     required StreamController<RenderNotifier> notifier,
-    required this.binding,
-    required this.renderKey,
+    required this.task,
     DateTime? startTime,
   })  : _notifier = notifier,
         startTime = DateTime.now(),
         super(
+          logLevel: detachedSession.logLevel,
+          binding: detachedSession.binding,
           format: detachedSession.format,
           settings: detachedSession.settings,
           processDirectory: detachedSession.processDirectory,
@@ -144,16 +151,17 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
         );
 
   /// Upgrade the current renderSession to a real session
-  RenderSession<T, EndCapturingSettings> upgrade(
+  RenderSession<T, RealRenderSettings> upgrade(
       Duration capturingDuration, int frameAmount) {
-    return RenderSession<T, EndCapturingSettings>(
-      settings: EndCapturingSettings(
+    return RenderSession<T, RealRenderSettings>(
+      settings: RealRenderSettings(
         pixelRatio: settings.pixelRatio,
         processTimeout: settings.processTimeout,
         capturingDuration: capturingDuration,
         frameAmount: frameAmount,
       ),
       startTime: startTime,
+      logLevel: logLevel,
       inputDirectory: inputDirectory,
       outputDirectory: outputDirectory,
       processDirectory: processDirectory,
@@ -161,7 +169,7 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
       temporaryDirectory: temporaryDirectory,
       format: format,
       binding: binding,
-      renderKey: renderKey,
+      task: task,
       notifier: _notifier,
     );
   }
@@ -177,6 +185,7 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
   /// A method that is used to record activity in the session.
   void recordActivity(RenderState state, double? stateProgression,
       {String? message, String? details}) {
+    if (logLevel == LogLevel.none || _notifier.isClosed) return;
     if (_currentState != state) _currentState = state;
     _notifier.add(
       RenderActivity(
@@ -191,6 +200,7 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
 
   /// Used to record log messages in the session.
   void recordLog(String message) {
+    if (logLevel != LogLevel.debug || _notifier.isClosed) return;
     _notifier.add(
       RenderLog(
         timestamp: currentTimeStamp,
@@ -201,6 +211,7 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
 
   /// A method that is used to record errors in the session.
   void recordError(RenderException exception, {bool fatal = true}) {
+    if (_notifier.isClosed) return;
     _notifier.add(
       RenderError(
         timestamp: currentTimeStamp,
@@ -210,14 +221,14 @@ class RenderSession<T extends RenderFormat, K extends CapturingSettings>
     );
   }
 
-  //TODO: optional layer id
   /// Recording the result of the render session.
   void recordResult(File output, {String? message, String? details}) {
+    if (_notifier.isClosed) return;
     _notifier.add(
       RenderResult(
         format: format,
         timestamp: currentTimeStamp,
-        usedSettings: settings as EndCapturingSettings,
+        usedSettings: settings as RealRenderSettings,
         output: output,
         message: message,
         details: details,
