@@ -392,6 +392,7 @@ Note that there might be parameters which are not shown in the following class d
 
 ```mermaid
 %% DIAGRAM CAN ONLY BE SHOWN IN DESKTOP GITHUB (https://github.com/polarby/render#%EF%B8%8F-class-documentation)
+
 ---
 title: Diagram of main Render classes   
 ---
@@ -437,6 +438,7 @@ classDiagram
 
 ```mermaid
 %% DIAGRAM CAN ONLY BE SHOWN IN DESKTOP GITHUB (https://github.com/polarby/render#%EF%B8%8F-render-under-the-hood)
+
 stateDiagram
     [*] --> Capturing
     Capturing --> Handling 
