@@ -26,7 +26,7 @@ Main features include:
 
 -------
 
-
+<img src="https://user-images.githubusercontent.com/52090518/214943744-7785bb9f-ef86-42fe-9682-c4088dd73af7.gif" width="25%" height="25%"/>
 
 
 **Table of Contents**
@@ -393,9 +393,6 @@ Note that there might be parameters which are not shown in the following class d
 ```mermaid
 %% DIAGRAM CAN ONLY BE SHOWN IN DESKTOP GITHUB (https://github.com/polarby/render#%EF%B8%8F-class-documentation)
 
----
-title: Diagram of main Render classes   
----
 classDiagram
     YourWidget <|-- Render
     Render <|-- RenderController
