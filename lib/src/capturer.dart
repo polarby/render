@@ -279,9 +279,7 @@ class RenderCapturer<K extends RenderFormat> {
       pipelineOwner.flushLayout();
       pipelineOwner.flushCompositingBits();
       pipelineOwner.flushPaint();
-
-      ui.Image image =
-          repaintBoundary.toImageSync(pixelRatio: session.settings.pixelRatio);
+      /*
       try {
         /// Dispose All widgets
         rootElement.visitChildren((Element element) {
@@ -289,8 +287,10 @@ class RenderCapturer<K extends RenderFormat> {
         });
         buildOwner.finalizeTree();
       } catch (_) {}
+       */
 
-      return image;
+      return repaintBoundary.toImageSync(
+          pixelRatio: session.settings.pixelRatio);
     } catch (e) {
       throw RenderException(
         "Unknown error while capturing frame context. Trying next frame.",

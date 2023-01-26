@@ -48,6 +48,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
       outputPath: mainOutputFile.path,
       frameRate: session.settings.realFrameRate,
     );
+
     await _executeCommand(
       operation.arguments,
       progressShare: progressShare,

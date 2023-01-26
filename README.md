@@ -22,7 +22,9 @@ Main features include:
 - Record rendering **moving** widgets to export formats
 - Rendering widgets that are not in your widget tree (not displayed/build)
 
-*Additional support:* Transparency and sound
+*All features support (if supported by format):* Transparency & sound
+
+**Currently no support for: web | Untested for: Linux and Windows**
 
 -------
 
@@ -73,7 +75,7 @@ more.
 
 Now in your Dart code, you can use:
 
-```
+```dart
 import 'package:render/render.dart';
 ```
 
@@ -82,7 +84,8 @@ import 'package:render/render.dart';
 Render provides you with a wide range of methods to capture widgets. All widgets to be captures
 must be wrapped in the `Render` widget, with a provided controller to initiate rendering.
 
-```
+@formatter:off
+```dart
 import 'package:render/render.dart';
 
 final controller = RenderController();
@@ -95,6 +98,7 @@ Render(
 final result = await controller.captureMotion(Duration(seconds: 4));
 await controller.captureImage(format: ImageFormat.png, settings:  ImageSettings(pixelRatio: 3),);
 ```
+@formatter:on
 
 Tip: full interactive example for usage in `./example` folder.
 
@@ -115,7 +119,8 @@ There are 4 methods you can call to capture an image:
 - `captureImageFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
   notification stream.
 
-```
+@formatter:off
+```dart
 final imageResult = await renderController.captureImage(
      format: ImageFormat.png,
      settings: const ImageSettings(pixelRatio: 3),
@@ -123,6 +128,7 @@ final imageResult = await renderController.captureImage(
 
 Image.file(imageResult.output); // show result as image
 ```
+@formatter:on
 
 Look up [Handle Streams](#handling-stream--information-flow) to get to know how to render images
 with a notification streams.
@@ -138,7 +144,8 @@ There are 4 methods you can call to capture motion of a widget:
 - `captureMotionFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
   notification stream.
 
-```
+@formatter:off
+```dart
 final result = await renderController.captureMotionWithStream(
      functionController.duration,
      settings: const MotionSettings(pixelRatio: 4),
@@ -151,6 +158,7 @@ await controller.play();
 
 VideoPlayer(snapshot.data!); // show result as video
 ```
+@formatter:on
 
 **Audio**
 Currently there is [no way to record](https://github.com/polarby/render/issues/5) the internal audio
@@ -158,7 +166,8 @@ of a flutter app or specific widgets, therefore the only feasible way for now is
 file. To do this you can pass multiple audio files (from eg. video, url, music, etc) to the target
 format:
 
-```
+@formatter:off
+```dart
 controller.captureMotion(
     ...
     format: MovFormat(audio: [
@@ -167,6 +176,7 @@ controller.captureMotion(
     ]),
 );
 ```
+@formatter:on
 
 Depending on the rendering settings, motion rendering can take quite long, so it is highly
 recommended to use methods with stream return, to notify the user about the progress of rendering.
@@ -181,7 +191,8 @@ functions returns a `MotionRecorder` to `stop()`and access the stream of the act
 - `recordMotion()` to record the child of `Render` widget, which is in you widget tree.
 - `recordMotionFromWidget(Widget widget)` to record a invisible provided widget.
 
-```
+@formatter:off
+```dart
 final recorder = renderController.recordMotion(
        functionController.duration,
        settings: const MotionSettings(pixelRatio: 5),
@@ -192,6 +203,7 @@ await Future.delayed(Duration(seconds: 5));
 
 final result = await recorder.stop(); // result can then be displayed (see Motion rendering)
 ```
+@formatter:on
 
 Depending on the rendering settings, motion rendering can take quite long, so it is highly
 recommended to use methods with stream return, to notify the user about the progress of rendering.
@@ -206,7 +218,8 @@ Simply pass the widget that needs to be rendered in the function.
 Note that rendering out of context will still build and render each frame of the widget. It will not
 reduce processing time in any way.
 
-```
+@formatter:off
+```dart
 final imageResult = await renderController.captureImageFromWidget(
     Container(), // The widget to be rendered
     format: ImageFormat.png,
@@ -215,6 +228,7 @@ final imageResult = await renderController.captureImageFromWidget(
 
 Image.file(imageResult.output); // show result as image
 ```
+@formatter:on
 
 **Known Confusions:**
 
@@ -227,7 +241,8 @@ Image.file(imageResult.output); // show result as image
 Using information stream is highly recommended for rendering motion, due to longer loading phases.
 The following example shows how to handle streams of a rendering process:
 
-```
+@formatter:off
+```dart
 final stream = renderController.captureMotionWithStream( // start capturing with stream
     functionController.duration,
     settings: const MotionSettings(pixelRatio: 10),
@@ -246,6 +261,7 @@ stream.listen((event) { // listens to stream until it closes by itself (when res
 // result can then be displayed (see Motion rendering)
 final result = await stream.firstWhere((element) => element.isResult);
 ```
+@formatter:on
 
 ## 🔩 Compatibility
 
@@ -284,11 +300,11 @@ To get a good sweet spot you can follow the following introduction for your spec
 
 ### Supported Platforms
 
-|             |  Android  |  iOS   | Web  | macOS  |   Windows   |
-|:------------|:---------:|:------:|:----:|:------:|:-----------:|
-| **Support** |  SDK 16+  |  9.0+  | Any  | 10.11+ | Windows 10+ |
-| Motion      |    ✔️     |   ✔️   | ❌️️  |   ✔️   |  Untested   |
-| Image       |    ✔️     |   ✔️   | ❌️️️ |   ✔️   |  Untested   |
+|             |  Android  |  iOS   | Web  | macOS  |   Windows   |  Linux   |
+|:------------|:---------:|:------:|:----:|:------:|:-----------:|:--------:|
+| **Support** |  SDK 16+  |  9.0+  | Any  | 10.11+ | Windows 10+ |   any    |
+| Motion      |    ✔️     |   ✔️   | ❌️️  |   ✔️   |  Untested   | Untested |
+| Image       |    ✔️     |   ✔️   | ❌️️️ |   ✔️   |  Untested   | Untested |
 
 There currently [no support for web](https://github.com/polarby/render/issues/6), as file writing is
 an issue. Windows version might require a simple rewrite of processing structure, but i do not have
@@ -315,7 +331,8 @@ In case you want to export your rendering as a custom format, that is currently 
 this plugin, but support by FFmpeg conversion, you can follow the instructions below to extend
 the format class:
 
-```
+@formatter:off
+```dart
 class YourFormat extends MotionFormat { // you can either extend MotionFormat or ImageFormat
   final dynamic formatSpecificSetting;
 
@@ -353,12 +370,15 @@ class YourFormat extends MotionFormat { // you can either extend MotionFormat or
   }
 }
 ```
+@formatter:on
 
 After creating your format you can simply use it as format in `Render` methods:
 
-```
+@formatter:off
+```dart
 controller.captureImage(format: YourFormat());
 ```
+@formatter:on
 
 If you think your format can be of use for other, please submit it as a new issue or pull request
 and we can merge it for public use.

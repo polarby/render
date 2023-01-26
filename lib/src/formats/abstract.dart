@@ -1,4 +1,4 @@
-import 'package:render/render.dart';
+import 'package:render/src/formats/image.dart';
 import 'package:render/src/formats/service.dart';
 
 import 'motion.dart';

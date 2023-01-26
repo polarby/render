@@ -1,3 +1,4 @@
+
 import 'dart:io';
 
 /// Arguments associated for ffmpeg execution. Note, that calling "ffmpeg"
@@ -46,7 +47,7 @@ class RenderScale {
 
   static RenderScale get fullHD => const RenderScale(1920, 1080);
 
-  static RenderScale get HD => const RenderScale(1280, 720);
+  static RenderScale get hd => const RenderScale(1280, 720);
 
   static RenderScale get fourK => const RenderScale(3840, 2160);
 
@@ -54,15 +55,15 @@ class RenderScale {
 
   static RenderScale get veryLowRes => const RenderScale(320, 180);
 
-  static RenderScale get QHD => const RenderScale(2560, 1440);
+  static RenderScale get qhd => const RenderScale(2560, 1440);
 
-  static RenderScale get SVGA => const RenderScale(800, 600);
+  static RenderScale get svga => const RenderScale(800, 600);
 
-  static RenderScale get XGA => const RenderScale(1024, 768);
+  static RenderScale get xga => const RenderScale(1024, 768);
 
-  static RenderScale get HDplus => const RenderScale(1366, 768);
+  static RenderScale get hdPlus => const RenderScale(1366, 768);
 
-  static RenderScale get WQXGA => const RenderScale(2560, 1600);
+  static RenderScale get wqxga => const RenderScale(2560, 1600);
 }
 
 /// Interpolation in is a method used to calculate new pixel values
