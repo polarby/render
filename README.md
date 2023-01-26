@@ -24,9 +24,10 @@ Main features include:
 
 *All features support (if supported by format):* Transparency & sound
 
-**Currently no support for: web | Untested for: Linux and Windows**
-
 -------
+
+
+
 
 **Table of Contents**
 
@@ -160,7 +161,8 @@ VideoPlayer(snapshot.data!); // show result as video
 ```
 [comment]: # (@formatter:on)
 
-**Audio**
+**Audio:**
+
 Currently there is [no way to record](https://github.com/polarby/render/issues/5) the internal audio
 of a flutter app or specific widgets, therefore the only feasible way for now is to pass audio as a
 file. To do this you can pass multiple audio files (from eg. video, url, music, etc) to the target
@@ -389,6 +391,7 @@ usages every parameter is also documented in the code itself.
 Note that there might be parameters which are not shown in the following class diagram.
 
 ```mermaid
+%% DIAGRAM CAN ONLY BE SHOWN IN DESKTOP GITHUB (https://github.com/polarby/render#%EF%B8%8F-class-documentation)
 ---
 title: Diagram of main Render classes   
 ---
@@ -433,6 +436,7 @@ classDiagram
 ## ⚙️ `Render`: Under the hood
 
 ```mermaid
+%% DIAGRAM CAN ONLY BE SHOWN IN DESKTOP GITHUB (https://github.com/polarby/render#%EF%B8%8F-render-under-the-hood)
 stateDiagram
     [*] --> Capturing
     Capturing --> Handling 

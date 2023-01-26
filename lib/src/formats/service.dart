@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 /// Arguments associated for ffmpeg execution. Note, that calling "ffmpeg"
@@ -134,7 +133,6 @@ enum Interpolation {
   sinc,
 }
 
-
 class RenderAudio {
   final String path;
 
@@ -142,10 +140,7 @@ class RenderAudio {
   /// sound is being taken
   RenderAudio.url(Uri url) : path = url.toString();
 
-
   /// Audio from a File source. This can also be a video format, where only the
   /// sound is being taken
   RenderAudio.file(File file) : path = file.path;
-
-
 }

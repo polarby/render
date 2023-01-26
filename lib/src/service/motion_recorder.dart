@@ -52,7 +52,10 @@ class MotionRecorder<T extends MotionFormat> {
     final realSession = await _capturer.finish();
     final processor = MotionProcessor(realSession);
     processor.process(); // wait for result instead of process
-    return await stream.singleWhere((element) => element.isResult)
-        as RenderResult;
+    final result =
+        await stream.singleWhere((element) => element.isResult) as RenderResult;
+    _notifier.close();
+    _session.dispose();
+    return result;
   }
 }
