@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:render/src/service/session.dart';
 import 'package:render/src/service/settings.dart';
 import '../formats/abstract.dart';
 import 'exception.dart';
@@ -57,7 +58,7 @@ class RenderLog extends RenderNotifier {
 
   @override
   String toString() {
-    return "RenderLog(timestamp: $timestamp, message: $message)";
+    return "RenderLog(timestamp: $timestamp, message: ${message.replaceAll(RegExp(r"\s+"), " ")})";
   }
 }
 
@@ -76,14 +77,20 @@ class RenderActivity extends RenderNotifier {
   /// Progressing in Percentage. Used to calculate the expected time remaining.
   final double currentStateProgression;
 
+  final RenderSession _session;
+
   /// Used to notify the user about the current state of the rendering process.
   RenderActivity({
     required this.state,
     required this.currentStateProgression,
     this.message,
     this.details,
+    required RenderSession session,
     required super.timestamp,
-  }) : assert(currentStateProgression >= 0.0 && currentStateProgression <= 1.0);
+  })  : _session = session,
+        assert(
+          currentStateProgression >= 0.0 && currentStateProgression <= 1.0,
+        );
 
   /// The calculated expected amount of time needed until rendering is finished.
   /// This value is based on the execution time of previous operations and does
@@ -107,8 +114,9 @@ class RenderActivity extends RenderNotifier {
         .fold(
             0.0,
             (previousValue, element) =>
-                previousValue + element.processingShare);
-    return currentStateProgression * state.processingShare + percentagePassed;
+                previousValue + _session.processingShare(element));
+    return currentStateProgression * _session.processingShare(state) +
+        percentagePassed;
   }
 
   /// Calculating the total time that is expected to be needed to render the
@@ -153,9 +161,11 @@ class RenderResult extends RenderActivity {
     super.message,
     super.details,
     required super.timestamp,
+    required RenderSession session,
   }) : super(
           state: RenderState.finishing,
           currentStateProgression: 1,
+          session: session,
         );
 
   ///The time that was needed to render the widget (=timestamp)
@@ -191,22 +201,6 @@ enum RenderState {
   /// Disposing of session and returning result. This state usually is not
   /// asynchronous and just represents the end state.
   finishing;
-
-  /// The expected processing share each part holds. This is relevant for
-  /// calculating the expected time remain and progress percentage of rendering.
-  /// Values are based on experimentation.
-  double get processingShare {
-    switch (this) {
-      case RenderState.capturing:
-        return 0.6;
-      case RenderState.handleCaptures:
-        return 0.1;
-      case RenderState.processing:
-        return 0.3;
-      case RenderState.finishing:
-        return 0;
-    }
-  }
 }
 
 /// Which logs should be displayed in the console or notification stream

@@ -303,7 +303,8 @@ class RenderCapturer<K extends RenderFormat> {
   void _recordActivity(
       RenderState state, int frame, int? totalFrameTarget, String message) {
     if (totalFrameTarget != null) {
-      session.recordActivity(state, (1 / totalFrameTarget) * frame,
+      session.recordActivity(
+          state, ((1 / totalFrameTarget) * frame).clamp(0.0, 1.0),
           message: message);
     } else {
       // capturing activity when recording (no time limit set)

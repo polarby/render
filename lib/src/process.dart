@@ -76,7 +76,6 @@ abstract class RenderProcessor<T extends RenderFormat> {
         );
       },
       (Log log) {
-        print("level: ${log.getLevel()}, logs: ${log.getMessage()}");
         session.recordLog(log.getMessage());
       },
       (Statistics statistics) {

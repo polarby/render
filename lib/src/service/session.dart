@@ -93,6 +93,22 @@ class DetachedRenderSession<T extends RenderFormat, K extends RenderSettings> {
   /// Creating a file in the process directory.
   File createProcessFile(String subPath) =>
       _createFile("$processDirectory/$subPath");
+
+  /// The expected processing state share each part holds. This is relevant for
+  /// calculating the expected time remain and progress percentage of rendering.
+  /// Values are based on experimentation.
+  double processingShare(RenderState state) {
+    switch (state) {
+      case RenderState.capturing:
+        return 0.7 * (1 - format.processShare);
+      case RenderState.handleCaptures:
+        return 0.3 * (1 - format.processShare);
+      case RenderState.processing:
+        return format.processShare;
+      case RenderState.finishing:
+        return 0;
+    }
+  }
 }
 
 class RenderSession<T extends RenderFormat, K extends RenderSettings>
@@ -189,6 +205,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
     if (_currentState != state) _currentState = state;
     _notifier.add(
       RenderActivity(
+        session: this,
         timestamp: currentTimeStamp,
         state: state,
         currentStateProgression: stateProgression ?? 0.5,
@@ -219,6 +236,9 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
         exception: exception,
       ),
     );
+    if (fatal) {
+      dispose();
+    }
   }
 
   /// Recording the result of the render session.
@@ -226,6 +246,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
     if (_notifier.isClosed) return;
     _notifier.add(
       RenderResult(
+        session: this,
         format: format,
         timestamp: currentTimeStamp,
         usedSettings: settings as RealRenderSettings,

@@ -22,9 +22,11 @@ class NavigationButtons extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: StreamBuilder<RenderNotifier>(
-              stream: exampleAnimationController.renderStream,
+              stream: exampleAnimationController.renderStream
+                  ?.where((event) => !event.isLog),
               builder: (context, snapshot) {
-                if (snapshot.data?.isActivity == true) {
+                if (snapshot.data?.isActivity == true &&
+                    !snapshot.data!.isResult) {
                   final activity = snapshot.data as RenderActivity;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,6 +42,12 @@ class NavigationButtons extends StatelessWidget {
                       Text(
                           "ProgressPercentage: ${activity.progressPercentage * 100}%"),
                       Text("Current time: ${activity.timestamp}"),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: LinearProgressIndicator(
+                          value: activity.progressPercentage,
+                        ),
+                      ),
                     ],
                   );
                 } else if (snapshot.data?.isError == true) {
@@ -60,13 +68,6 @@ class NavigationButtons extends StatelessWidget {
                 }
               }),
         ),
-        AnimatedBuilder(
-            animation: exampleAnimationController.colorAnimation,
-            builder: (context, child) {
-              return LinearProgressIndicator(
-                value: exampleAnimationController.process,
-              );
-            }),
         Center(
           child: Wrap(
             children: [

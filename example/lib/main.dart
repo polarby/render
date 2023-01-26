@@ -43,6 +43,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
+    init.then((value) => print("done"));
     return Scaffold(
       appBar: AppBar(
         title: const Text("Render Example"),
@@ -71,17 +72,14 @@ class _MyHomePageState extends State<MyHomePage>
                     motionRenderCallback: () async {
                       functionController.play();
                       final stream = renderController.captureMotionWithStream(
-                        functionController.videoController.value.duration,
-                        settings: const MotionSettings(),
-                        format: MovFormat(
-                          audio: [
-                            RenderAudio.url(
-                              Uri.parse(
-                                'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-                              ),
-                            ),
-                          ],
-                        ),
+                        functionController.duration,
+                        settings: const MotionSettings(pixelRatio: 3),
+                        format: MovFormat(audio: [
+                          RenderAudio.url(
+                            Uri.parse(
+                                "https://www.fluttercampus.com/video.mp4"),
+                          ),
+                        ]),
                       );
                       setState(() {
                         functionController.attach(stream);
@@ -103,7 +101,14 @@ class _MyHomePageState extends State<MyHomePage>
               ),
             );
           } else {
-            return Text("Error");
+            return Center(
+              child: Text(
+                "Error loading: ${snapshot.error}",
+                style: const TextStyle(
+                  color: Colors.red,
+                ),
+              ),
+            );
           }
         },
       ),

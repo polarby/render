@@ -38,6 +38,7 @@ class RenderController {
       DetachedRenderSession<T, K> detachedRenderSession,
       StreamController<RenderNotifier> notifier,
       [WidgetIdentifier? overwriteTask]) {
+    assert(!kIsWeb, "Render does not support Web yet");
     assert(
         overwriteTask != null || _globalTask?.key.currentWidget != null,
         "RenderController must have a Render instance "
@@ -81,12 +82,12 @@ class RenderController {
   ///
   /// Default file format is [ImageFormat.png]
   Future<RenderResult> captureImage({
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
   }) async {
     final stream = captureImageWithStream(
-      logLevel: logLevel,
+      logLevel: logLevel ?? this.logLevel,
       settings: settings,
       format: format,
     );
@@ -107,7 +108,7 @@ class RenderController {
   /// Default file format is [ImageFormat.png]
   Future<RenderResult> captureImageFromWidget(
     Widget widget, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
   }) async {
@@ -134,7 +135,7 @@ class RenderController {
   /// Default file format is [MotionFormat.mov]
   Future<RenderResult> captureMotion(
     Duration duration, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
   }) async {
@@ -166,7 +167,7 @@ class RenderController {
   Future<RenderResult> captureMotionFromWidget(
     Widget widget,
     Duration duration, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
   }) async {
@@ -191,12 +192,12 @@ class RenderController {
   ///
   /// Default file format is [ImageFormat.png]
   Stream<RenderNotifier> captureImageWithStream({
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
   }) {
     final notifier = StreamController<RenderNotifier>.broadcast();
-    DetachedRenderSession.create(format, settings, logLevel)
+    DetachedRenderSession.create(format, settings, logLevel ?? this.logLevel)
         .then((detachedSession) async {
       final session = _createRenderSessionFrom(detachedSession, notifier);
       final capturer = RenderCapturer(session);
@@ -217,12 +218,12 @@ class RenderController {
   /// Default file format is [MotionFormat.mov]
   Stream<RenderNotifier> captureMotionWithStream(
     Duration duration, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
   }) {
     final notifier = StreamController<RenderNotifier>.broadcast();
-    DetachedRenderSession.create(format, settings, logLevel)
+    DetachedRenderSession.create(format, settings, logLevel ?? this.logLevel)
         .then((detachedSession) async {
       final session = _createRenderSessionFrom(detachedSession, notifier);
       final capturer = RenderCapturer(session);
@@ -246,13 +247,13 @@ class RenderController {
   /// Default file format is [ImageFormat.png]
   Stream<RenderNotifier> captureImageFromWidgetWithStream(
     Widget widget, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
   }) {
     final widgetTask = WidgetIdentifier(controllerId: id, widget: widget);
     final notifier = StreamController<RenderNotifier>.broadcast();
-    DetachedRenderSession.create(format, settings, logLevel)
+    DetachedRenderSession.create(format, settings, logLevel ?? this.logLevel)
         .then((detachedSession) async {
       final session = _createRenderSessionFrom(
         detachedSession,
@@ -283,13 +284,13 @@ class RenderController {
   Stream<RenderNotifier> captureMotionFromWidgetWithStream(
     Widget widget,
     Duration duration, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
   }) {
     final widgetTask = WidgetIdentifier(controllerId: id, widget: widget);
     final notifier = StreamController<RenderNotifier>.broadcast();
-    DetachedRenderSession.create(format, settings, logLevel)
+    DetachedRenderSession.create(format, settings, logLevel ?? this.logLevel)
         .then((detachedSession) async {
       final session = _createRenderSessionFrom(
         detachedSession,
@@ -309,10 +310,11 @@ class RenderController {
   ///
   /// Default file format is [MotionFormat.mov]
   MotionRecorder recordMotion({
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
   }) {
+    assert(!kIsWeb, "Render does not support Web yet");
     assert(
         _globalTask?.key.currentWidget != null,
         "RenderController must have a Render instance "
@@ -321,7 +323,7 @@ class RenderController {
       format: format,
       capturingSettings: settings,
       task: _globalTask!,
-      logLevel: logLevel,
+      logLevel: logLevel ?? this.logLevel,
     );
   }
 
@@ -331,15 +333,16 @@ class RenderController {
   /// Default file format is [MotionFormat.mov]
   MotionRecorder recordMotionFromWidget(
     Widget widget, {
-    LogLevel logLevel = LogLevel.activity,
+    LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
   }) {
+    assert(!kIsWeb, "Render does not support Web yet");
     return MotionRecorder.start(
       format: format,
       capturingSettings: settings,
       task: WidgetIdentifier(controllerId: id, widget: widget),
-      logLevel: logLevel,
+      logLevel: logLevel ?? this.logLevel,
     );
   }
 }
@@ -353,7 +356,28 @@ class Render extends StatefulWidget {
   /// widgets can be rendered.
   final Widget child;
 
-  //TODO: documentation (from read me)
+  /// A wrapper for rendering.
+  /// Place the widget that needs to be rendered as a child and initiate a render
+  /// by calling a method of [RenderController].
+  ///
+  ///
+  /// ---
+  ///```
+  /// import 'package:render/render.dart';
+  ///
+  /// final controller = RenderController();
+  ///
+  /// Render(
+  ///     controller: controller,
+  ///     child: Container(),
+  /// ),
+  ///
+  /// final result = await controller.captureMotion(Duration(seconds: 4));
+  /// await controller.captureImage(format: ImageFormat.png, settings:  ImageSettings(pixelRatio: 3));
+  /// ```
+  ///
+  /// ---
+  ///
   const Render({
     Key? key,
     this.controller,

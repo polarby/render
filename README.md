@@ -17,9 +17,12 @@
 A flutter widget to render and convert widgets into a wide range of exportable file formats.
 Main features include:
 
-- Render static widgets to export formats (eg. png, jpeg, ...)
-- Render moving widgets to export formats (eg. gif, mp4 (including sound), ...)
+- Render **static** widgets to export formats (eg. png, jpeg, ...)
+- Render **moving** widgets to export formats (eg. gif, mp4, ...)
+- Record rendering **moving** widgets to export formats
 - Rendering widgets that are not in your widget tree (not displayed/build)
+
+*Additional support:* Transparency and sound
 
 -------
 
@@ -40,8 +43,6 @@ Main features include:
     - [Exportable Formats](#exportable-formats)
         - [Custom formats](#custom-formats)
 - [🗄️ Class documentation](#-class-documentation)
-    - [Render class](#render-class)
-    - [Render Controller](#rendercontroller-class)
 - [⚙️ Render: Under the hood](#-render-under-the-hood)
 - [⚠ Known issues](#-known-issues)
 - [📢 Additional information & Contribution](#-additional-information--contribution)
@@ -50,47 +51,170 @@ Main features include:
 
 ### Installing
 
+**Depend on it**
+
+With Flutter:
+
+```
+flutter pub add render
+```
+
+This will add a line like this to your package's pubspec.yaml (and run an implicit flutter pub get):
+
+```
+dependencies:
+  render: ^x.x.x
+```
+
+Alternatively, your editor might support flutter pub get. Check the docs for your editor to learn
+more.
+
+**Import it**
+
+Now in your Dart code, you can use:
+
+```
+import 'package:render/render.dart';
+```
+
 ### Quick start
+
+Render provides you with a wide range of methods to capture widgets. All widgets to be captures
+must be wrapped in the `Render` widget, with a provided controller to initiate rendering.
 
 ```
 import 'package:render/render.dart';
 
-final _controller = RenderController();
+final controller = RenderController();
 
 Render(
-    controller: _controller,
+    controller: controller,
     child: Container(),
-)
+),
 
-await _controller.captureMotion(Duration(seconds: 4),const MotionSettings());
+final result = await controller.captureMotion(Duration(seconds: 4));
+await controller.captureImage(format: ImageFormat.png, settings:  ImageSettings(pixelRatio: 3),);
 ```
 
 Tip: full interactive example for usage in `./example` folder.
 
 ### Usage
 
-Multiple simultaneous operations on one `Render` instance is allowed, but only
-one `RenderController` per `Render` instance is expected.
+In the following the 3 different operations for rendering is mentioned. Multiple simultaneous
+operations on one `Render` instance are allowed, but only one `RenderController` per `Render`
+instance is expected.
 
 #### Image rendering
 
+There are 4 methods you can call to capture an image:
+
+- `captureImage()` to render the child of `Render` widget, which is in you widget tree.
+- `captureImageFromWidget(Widget widget)` to render a invisible provided widget.
+- `captureImageWithStream(Widget widget)` to render the child of `Render` widget, which is in you
+  widget tree with a notification stream.
+- `captureImageFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
+  notification stream.
+
+```
+final imageResult = await renderController.captureImage(
+     format: ImageFormat.png,
+     settings: const ImageSettings(pixelRatio: 3),
+);
+
+Image.file(imageResult.output); // show result as image
+```
+
 Look up [Handle Streams](#handling-stream--information-flow) to get to know how to render images
-with a notification stream by using `.captureImageWithStream()`.
+with a notification streams.
 
 #### Motion rendering
 
-Depending on the rendering settings, motion rendering can take quite long, so it is highly 
-recommended to use [Streams](#handling-stream--information-flow) with `.captureMotionWithStream()`,
-to notify the use about the progress of rendering.
+There are 4 methods you can call to capture motion of a widget:
+
+- `captureMotion()` to render the child of `Render` widget, which is in you widget tree.
+- `captureMotionFromWidget(Widget widget)` to render a invisible provided widget.
+- `captureMotionWithStream(Widget widget)` to render the child of `Render` widget, which is in you
+  widget tree with a notification stream.
+- `captureMotionFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
+  notification stream.
+
+```
+final result = await renderController.captureMotionWithStream(
+     functionController.duration,
+     settings: const MotionSettings(pixelRatio: 4),
+     format: Format.gif,
+);
+
+final controller = VideoPlayerController.file(result.output);
+await controller.initialize();
+await controller.play();
+
+VideoPlayer(snapshot.data!); // show result as video
+```
+
+**Audio**
+Currently there is [no way to record](https://github.com/polarby/render/issues/5) the internal audio
+of a flutter app or specific widgets, therefore the only feasible way for now is to pass audio as a
+file. To do this you can pass multiple audio files (from eg. video, url, music, etc) to the target
+format:
+
+```
+controller.captureMotion(
+    ...
+    format: MovFormat(audio: [
+        RenderAudio.url(url),
+        RenderAudio.file(file),
+    ]),
+);
+```
+
+Depending on the rendering settings, motion rendering can take quite long, so it is highly
+recommended to use methods with stream return, to notify the user about the progress of rendering.
+Look up [Handle Streams](#handling-stream--information-flow) to get to know how to render images
+with a notification streams.
 
 #### Recording motion
 
+There are 2 methods you can call to record motion of a widget. Both
+functions returns a `MotionRecorder` to `stop()`and access the stream of the activity.
+
+- `recordMotion()` to record the child of `Render` widget, which is in you widget tree.
+- `recordMotionFromWidget(Widget widget)` to record a invisible provided widget.
+
+```
+final recorder = renderController.recordMotion(
+       functionController.duration,
+       settings: const MotionSettings(pixelRatio: 5),
+       format: const GifFormat(),
+);
+
+await Future.delayed(Duration(seconds: 5));
+
+final result = await recorder.stop(); // result can then be displayed (see Motion rendering)
+```
+
+Depending on the rendering settings, motion rendering can take quite long, so it is highly
+recommended to use methods with stream return, to notify the user about the progress of rendering.
+Look up [Handle Streams](#handling-stream--information-flow) to get to know how to listen to the
+recording stream, to notify the user about the process of rendering/capturing.
+
 #### Out of context
+
+`...fromWidget()` method's replace the need for the [Render] widget as a parent widget.
+Simply pass the widget that needs to be rendered in the function.
 
 Note that rendering out of context will still build and render each frame of the widget. It will not
 reduce processing time in any way.
-Although using `Render` package in flutter might be convenient for flutter users to use, it is more
-efficient to edit videos (& images) and recreate your rendering widget in a native editing tool.
+
+```
+final imageResult = await renderController.captureImageFromWidget(
+    Container(), // The widget to be rendered
+    format: ImageFormat.png,
+    settings: const ImageSettings(pixelRatio: 3),
+);
+
+Image.file(imageResult.output); // show result as image
+```
 
 **Known Confusions:**
 
@@ -99,6 +223,29 @@ efficient to edit videos (& images) and recreate your rendering widget in a nati
   and pass the sound to the audio input of the format.
 
 #### Handling stream & information flow
+
+Using information stream is highly recommended for rendering motion, due to longer loading phases.
+The following example shows how to handle streams of a rendering process:
+
+```
+final stream = renderController.captureMotionWithStream( // start capturing with stream
+    functionController.duration,
+    settings: const MotionSettings(pixelRatio: 10),
+    format: const GifFormat(),
+);
+
+stream.listen((event) { // listens to stream until it closes by itself (when result is present)
+    // other events might be result, log or error
+    if (event.isActivity){
+        final activity = event as RenderActivity;
+        // Here could be a setState() call to update your process status
+        print("Process: ${activity.progressPercentage}");
+    }
+});
+
+// result can then be displayed (see Motion rendering)
+final result = await stream.firstWhere((element) => element.isResult);
+```
 
 ## 🔩 Compatibility
 
@@ -112,19 +259,47 @@ The maximum frame rate of rendering is limited to the maximum frame rate of the 
 application. Very high quality rendering (>60fps, >10xlogical pixels) might reduce application
 frame rate and consequently the fluency of rendering, resulting is frame jumps in the output file.
 
+**Using settings to keep up performance**
+
+You can take advantage of `simultaneousCaptureHandlers`, `pixelRatio` and `frameRate` in
+the `RenderSettings` class.
+
+Handlers process and write frames from the RAM to a local directory. Each frame size is determined
+by the size of `pixelRatio` and `frameRate`is settings how many handler operations are needed per
+second. Having multiple handlers at the same time heavily influences the performance of the
+application during rendering.
+
+The more handlers are running simultaneously the worse gets the framerate and might result in a "
+laggy" behavior. Less simultaneously handlers result in longer loading phases, as simultaneous
+handling can not be done during capturing anymore.
+
+Note, that if there a lot of unhandled frames it might still result in laggy behavior, as the
+application's RAM gets filled with UI images, instead of many handler operations.
+
+To get a good sweet spot you can follow the following introduction for your specific situation:
+
+- Low pixelRatio - high frameRate - many handlers
+- high pixelRatio - low frameRate - many handlers
+- high pixelRatio - high frameRate - few handlers
+
 ### Supported Platforms
 
-|             |  Android  |  iOS   | Web | macOS  |   Windows   |
-|:------------|:---------:|:------:|:---:|:------:|:-----------:|
-| **Support** |  SDK 16+  |  9.0+  | Any | 10.11+ | Windows 10+ |
-| Motion      |    ✔️     |   ✔️   | ❌️️ |   ✔️   |     ✔️      |
-| Image       |    ✔️     |   ✔️   | ✔️  |   ✔️   |     ✔️      |
+|             |  Android  |  iOS   | Web  | macOS  |   Windows   |
+|:------------|:---------:|:------:|:----:|:------:|:-----------:|
+| **Support** |  SDK 16+  |  9.0+  | Any  | 10.11+ | Windows 10+ |
+| Motion      |    ✔️     |   ✔️   | ❌️️  |   ✔️   |  Untested   |
+| Image       |    ✔️     |   ✔️   | ❌️️️ |   ✔️   |  Untested   |
+
+There currently [no support for web](https://github.com/polarby/render/issues/6), as file writing is
+an issue. Windows version might require a simple rewrite of processing structure, but i do not have
+access a device to debug.
 
 ### Exportable Formats
 
 Below are the currently supported and planned formats, that are also mostly supported by the default
 flutter [Video_player](https://pub.dev/packages/video_player)
-and [Image](https://api.flutter.dev/flutter/widgets/Image-class.html) visualizer.
+and [Image](https://api.flutter.dev/flutter/widgets/Image-class.html) visualizer. Note that the
+default video player does not support transparency.
 
 | Motion Formats | .mp4 | .mov | .gif | .webp | .apng | .mpeg | .mkv | .hls | .dash | .raw | .qtff |
 |:-------------:|:---:|:---:|:--:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -136,25 +311,105 @@ and [Image](https://api.flutter.dev/flutter/widgets/Image-class.html) visualizer
 
 #### Custom Formats
 
-## 🗄️ Class documentation
+In case you want to export your rendering as a custom format, that is currently not supported by
+this plugin, but support by FFmpeg conversion, you can follow the instructions below to extend
+the format class:
 
-### `Render` class
+```
+class YourFormat extends MotionFormat { // you can either extend MotionFormat or ImageFormat
+  final dynamic formatSpecificSetting;
 
-```mermaid
-classDiagram
-class Square~Shape~{
-int id
-List~int~ position
-setPoints(List~int~ points)
-getPoints() List~int~
+  /// Your format description
+  YourFormat({
+    required this.formatSpecificSetting,
+    required super.handling,
+    required super.interpolation,
+    required super.scale,
+  }) : super(
+          processShare: 0.3,
+          audio: null, // if your format does not have audio support
+        );
+
+  @override
+  MotionFormat copyWith({RenderScale? scale, Interpolation? interpolation}) {
+    // TODO: implement copyWith
+    throw UnimplementedError();
+  }
+
+  @override
+  String get extension => "YourExtension";
+
+  @override
+  FFmpegRenderOperation processor(
+      {required String inputPath,
+      required String outputPath,
+      required double frameRate}) {
+    //return an FFmpegRenderOperation that takes care of all settings 
+    return super.processor(
+      inputPath: inputPath,
+      outputPath: outputPath,
+      frameRate: frameRate,
+    );
+  }
 }
-
-Square : -List~string~ messages
-Square : +setMessages(List~string~ messages)
-Square : +getMessages() List~string~
 ```
 
-### `RenderController` class
+After creating your format you can simply use it as format in `Render` methods:
+
+```
+controller.captureImage(format: YourFormat());
+```
+
+If you think your format can be of use for other, please submit it as a new issue or pull request
+and we can merge it for public use.
+
+## 🗄️ Class documentation
+
+In the following example you can see the documentation for main connections between classes and
+usages every parameter is also documented in the code itself.
+Note that there might be parameters which are not shown in the following class diagram.
+
+```mermaid
+---
+title: Diagram of main Render classes   
+---
+classDiagram
+    YourWidget <|-- Render
+    Render <|-- RenderController
+    YourWidget <|-- RenderController : .fromWidget()
+    RenderController <|-- MotionSettings
+    RenderController <|-- ImageSettings
+    note for RenderController "Additinonal Parameters:\n-RenderFormat format\n-LogLevel logLevel\nMotion:\n-Duration duration"
+
+
+    
+    class Render{
+        -Widget child
+        -RenderController controller
+    }
+    class RenderController{
+        -captureImage(ImageSettings settings)
+        -captureImageWithStream(ImageSettings settings)
+        -captureImageFromWidget(Widget widget, ImageSettings settings)
+        -captureImageFromWidgetWithStream(Widget widget, ImageSettings settings)
+        -captureMotion(MotionSettings settings)
+        -captureMotionWithStream(MotionSettings settings)
+        -captureMotionFromWidget(Widget widget, MotionSettings settings)
+        -captureMotionFromWidgetWithStream(Widget widget, MotionSettings settings)
+        -recordMotion(MotionSettings settings)
+        -recordMotionFromWidget(Widget widget, MotionSettings settings)
+    }
+    class MotionSettings{
+        -pixelRatio
+        -processTimeout
+        -frameRate
+        -simultaneousCaptureHandlers
+    }
+    class ImageSettings{
+        -pixelRatio
+        -processTimeout
+    }
+```
 
 ## ⚙️ `Render`: Under the hood
 
@@ -165,19 +420,18 @@ stateDiagram
     Handling --> Capturing 
     Handling --> Processing
     Processing --> [*]
-    Processing --> Layers Procssing
-    Layers Procssing --> [*]
 ```
 
 `Render` contains native flutter methods to capture frames and a light FFmpeg wrapper for format
 conversion.
 
-Render widget is a native flutter widget that relies on `RepaintBoundary` to capture flutter widgets
-frame by frame. Each frame is needs to be build-out (not necessary in a visible widget tree) to be
-able to get captured.
-*When `capture()` is called:* The builder will try to build each state of of the child widget to be
-able to repaint its boundary. The builder passes the snapshot argument, so you can adjust the
-current state of the child widget to the new frame and time. Each frame is written to a temporary
+It relies on `RepaintBoundary` to capture flutter widgets frame by frame. Each frame is needs to be
+build-out (not necessary in a visible widget tree) to be able to get captured.
+
+During capturing handlers are asynchronously initiated to do conversion and file writing of each
+frame in png format.
+
+In the processing step, Each frame is read from a temporary
 directory, to then be processed by [Ffmpeg](https://pub.dev/packages/ffmpeg_kit_flutter) (a tool for
 video, audio and image processing), which then process each frame to the wanted output type.
 
@@ -193,7 +447,7 @@ x264 (both used in this package) include algorithms which are subject to softwar
 For more info check the [FFmpeg-Kit patent disclaimer](https://pub.dartlang.org/packages/render).
 
 If you live in a country where software algorithms are patentable then you'll probably need to pay
-royalty fees to patent holders. We are not lawyers though, so we recommend that you seek legal
+royalty fees to patent holders. I am not a lawyers though, so i recommend that you seek legal
 advice first.
 
 Please refer to [Pub.dev](https://pub.dartlang.org/packages/render) to see the used library's
@@ -207,6 +461,9 @@ and possibly different sub-licences.
   for `Render` plugin.
 
 ## 📢 Additional information & Contribution
+
+Although using `Render` package in flutter might be convenient for flutter users to use, it is more
+efficient to edit videos (& images) and recreate your rendering widget in a native editing tool.
 
 Contributions are very welcome and can be merged within hours if testing is successful.
 Please note that this is an open source project and is not maintained by a company, but only

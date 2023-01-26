@@ -1,6 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-
 import 'animated_example_controller.dart';
 
 class AnimatedExampleWidget extends StatefulWidget {
@@ -43,12 +43,13 @@ class _AnimatedExampleWidgetState extends State<AnimatedExampleWidget> {
                 },
               ),
             ),
-            SizedBox(
-              height: 100,
-              width: 100,
-              child: VideoPlayer(
-                  widget.exampleAnimationController.videoController),
-            ),
+            if (!Platform.isMacOS)
+              SizedBox(
+                height: 100,
+                width: 100,
+                child: VideoPlayer(
+                    widget.exampleAnimationController.videoController!),
+              ),
           ],
         ),
       ),

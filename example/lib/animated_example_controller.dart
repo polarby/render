@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:render/render.dart';
@@ -8,7 +9,7 @@ class ExampleAnimationController extends ChangeNotifier {
   final AnimationController animationController;
   final Animation colorAnimation;
   final Animation<int> positionAnimation;
-  final VideoPlayerController videoController;
+  final VideoPlayerController? videoController;
   Stream<RenderNotifier>? renderStream;
 
   ExampleAnimationController({
@@ -21,8 +22,8 @@ class ExampleAnimationController extends ChangeNotifier {
     animationController.addListener(() {
       if (animationController.status == AnimationStatus.completed) {
         animationController.reset();
-        videoController.seekTo(const Duration(microseconds: 0));
-        videoController.pause();
+        videoController?.seekTo(const Duration(microseconds: 0));
+        videoController?.pause();
         notifyListeners();
       }
     });
@@ -33,14 +34,19 @@ class ExampleAnimationController extends ChangeNotifier {
   }
 
   static Future<ExampleAnimationController> create(TickerProvider vsync) async {
-    final videoController = VideoPlayerController.network(
-      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-      // 1 min: https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4
-      // 4 sec: 'https://www.fluttercampus.com/video.mp4'
-    );
-    await videoController.initialize();
+    VideoPlayerController? videoController;
+    if (!Platform.isMacOS) {
+       videoController = VideoPlayerController.network(
+        'https://www.fluttercampus.com/video.mp4',
+        // 1 min: https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4
+        // 4 sec: 'https://www.fluttercampus.com/video.mp4'
+      );
+       await videoController.initialize();
+    }
     final animationController = AnimationController(
-        vsync: vsync, duration: videoController.value.duration);
+        vsync: vsync,
+        duration:
+            videoController?.value.duration ?? const Duration(seconds: 4));
     final colorAnimation = ColorTween(begin: Colors.blue, end: Colors.yellow)
         .animate(animationController);
     final positionAnimation =
@@ -64,6 +70,6 @@ class ExampleAnimationController extends ChangeNotifier {
 
   void play() {
     animationController.forward();
-    videoController.play();
+    videoController?.play();
   }
 }
