@@ -45,9 +45,10 @@ Main features include:
     - [Supported Platforms](#supported-platforms)
     - [Exportable Formats](#exportable-formats)
         - [Custom formats](#custom-formats)
-- [🗄️ Class documentation](#-class-documentation)
-- [⚙️ Render: Under the hood](#-render-under-the-hood)
-- [⚠ Known issues](#-known-issues)
+- [📁 Class documentation](#-class-documentation)
+- [🔧 Under the hood](#-under-the-hood)
+- [📑 Licence & Patents](#-licence--patents)
+- [🚨 Known issues](#-known-issues)
 - [📢 Additional information & Contribution](#-additional-information--contribution)
 
 # 🚀 Getting started
@@ -113,9 +114,9 @@ instance is expected.
 
 There are 4 methods you can call to capture an image:
 
-- `captureImage()` to render the child of `Render` widget, which is in you widget tree.
+- `captureImage()` to render the child of `Render` widget, which is in your widget tree.
 - `captureImageFromWidget(Widget widget)` to render a invisible provided widget.
-- `captureImageWithStream(Widget widget)` to render the child of `Render` widget, which is in you
+- `captureImageWithStream(Widget widget)` to render the child of `Render` widget, which is in your
   widget tree with a notification stream.
 - `captureImageFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
   notification stream.
@@ -138,9 +139,9 @@ with a notification streams.
 
 There are 4 methods you can call to capture motion of a widget:
 
-- `captureMotion()` to render the child of `Render` widget, which is in you widget tree.
+- `captureMotion()` to render the child of `Render` widget, which is in your widget tree.
 - `captureMotionFromWidget(Widget widget)` to render a invisible provided widget.
-- `captureMotionWithStream(Widget widget)` to render the child of `Render` widget, which is in you
+- `captureMotionWithStream(Widget widget)` to render the child of `Render` widget, which is in your
   widget tree with a notification stream.
 - `captureMotionFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
   notification stream.
@@ -182,7 +183,7 @@ controller.captureMotion(
 
 Depending on the rendering settings, motion rendering can take quite long, so it is highly
 recommended to use methods with stream return, to notify the user about the progress of rendering.
-Look up [Handle Streams](#handling-stream--information-flow) to get to know how to render images
+Look up [Handle Streams](#handling-stream--information-flow) to get to know how to render motion
 with a notification streams.
 
 #### Recording motion
@@ -190,7 +191,7 @@ with a notification streams.
 There are 2 methods you can call to record motion of a widget. Both
 functions returns a `MotionRecorder` to `stop()`and access the stream of the activity.
 
-- `recordMotion()` to record the child of `Render` widget, which is in you widget tree.
+- `recordMotion()` to record the child of `Render` widget, which is in your widget tree.
 - `recordMotionFromWidget(Widget widget)` to record a invisible provided widget.
 
 [comment]: # (@formatter:off)
@@ -275,7 +276,7 @@ transparent videos and will only show a black or white background.
 
 The maximum frame rate of rendering is limited to the maximum frame rate of the current flutter
 application. Very high quality rendering (>60fps, >10xlogical pixels) might reduce application
-frame rate and consequently the fluency of rendering, resulting is frame jumps in the output file.
+frame rate and consequently the fluency of rendering, resulting in frame jumps in the output file.
 
 **Using settings to keep up performance**
 
@@ -283,7 +284,7 @@ You can take advantage of `simultaneousCaptureHandlers`, `pixelRatio` and `frame
 the `RenderSettings` class.
 
 Handlers process and write frames from the RAM to a local directory. Each frame size is determined
-by the size of `pixelRatio` and `frameRate`is settings how many handler operations are needed per
+by the size of `pixelRatio`, and the `frameRate`is settings how many handler operations are needed per
 second. Having multiple handlers at the same time heavily influences the performance of the
 application during rendering.
 
@@ -384,7 +385,7 @@ controller.captureImage(format: YourFormat());
 If you think your format can be of use for other, please submit it as a new issue or pull request
 and we can merge it for public use.
 
-## 🗄️ Class documentation
+## 📁 Class documentation
 
 In the following example you can see the documentation for main connections between classes and
 usages every parameter is also documented in the code itself.
@@ -431,7 +432,7 @@ classDiagram
     }
 ```
 
-## ⚙️ `Render`: Under the hood
+## 🔧 Under the hood
 
 ```mermaid
 %% DIAGRAM CAN ONLY BE SHOWN IN DESKTOP GITHUB (https://github.com/polarby/render#%EF%B8%8F-render-under-the-hood)
@@ -450,32 +451,39 @@ conversion.
 It relies on `RepaintBoundary` to capture flutter widgets frame by frame. Each frame is needs to be
 build-out (not necessary in a visible widget tree) to be able to get captured.
 
-During capturing handlers are asynchronously initiated to do conversion and file writing of each
-frame in png format.
+During capturing, handlers are asynchronously initiated to do conversion from a captured raw image 
+and then write the file of eachframe in png format to a temporary directory.
 
-In the processing step, Each frame is read from a temporary
+In the processing step, each frame is read from the temporary
 directory, to then be processed by [Ffmpeg](https://pub.dev/packages/ffmpeg_kit_flutter) (a tool for
 video, audio and image processing), which then process each frame to the wanted output type.
+Scaling of frames, sound adaption is also handled here.
 
 ## 📑 Licence & Patents
 
 `Render` alone is licenced
 under [MIT Licence](https://github.com/polarby/render/blob/master/LICENSE),
-because Open-Source rocks!
+because Open-Source rocks, and everything else just sucks for everyone!
 
-Unfortunately this package also takes advantage of FFmpeg plugin, which is believed to have patented
-algorithms. It is not clearly explained in their documentation, but it is believed that FFmpeg and
-x264 (both used in this package) include algorithms which are subject to software patents.
-For more info check the [FFmpeg-Kit patent disclaimer](https://pub.dartlang.org/packages/render).
+**Disclaimer:** I am not a lawyer. If you are concerned enough, seek professional legal advice.
 
-If you live in a country where software algorithms are patentable then you'll probably need to pay
-royalty fees to patent holders. I am not a lawyers though, so i recommend that you seek legal
-advice first.
+Unfortunately this package also takes advantage of FFmpeg plugin, which is **believed** to have
+patented algorithms. It is not clearly explained in their documentation, but it is **believed** that
+FFmpeg and x264 (both used in this package) include algorithms which are subject to software
+patents. For more info check
+the [FFmpeg-Kit patent disclaimer](https://github.com/arthenica/ffmpeg-kit#15-patents).
+
+Also note that, even if someone else does patent it, they may not assert their right to prevent you
+using the invention. They would only do so if your use of the invention materially impacts their
+sales or otherwise made them more money than taking legal action against you.
+[Source](https://softwareengineering.stackexchange.com/a/183809)
+
+As mentioned above, seek professional advice if it concerns you.
 
 Please refer to [Pub.dev](https://pub.dartlang.org/packages/render) to see the used library's
 and possibly different sub-licences.
 
-## ⚠️ Known Issues
+## 🚨 Known Issues
 
 * Platform views [cannot be rendered by flutter](https://github.com/flutter/flutter/issues/102866)
   itself (Platform views examples: Google Maps, Camera, etc.).
@@ -483,9 +491,6 @@ and possibly different sub-licences.
   for `Render` plugin.
 
 ## 📢 Additional information & Contribution
-
-Although using `Render` package in flutter might be convenient for flutter users to use, it is more
-efficient to edit videos (& images) and recreate your rendering widget in a native editing tool.
 
 Contributions are very welcome and can be merged within hours if testing is successful.
 Please note that this is an open source project and is not maintained by a company, but only
