@@ -26,6 +26,7 @@ Main features include:
 
 
 Not sure about `Render`? Check out the comparison to `screenshot`and `screen_recorder`[here](#-the-comparison-to-other-packages).
+
 -------
 
 <img src="https://user-images.githubusercontent.com/52090518/214943744-7785bb9f-ef86-42fe-9682-c4088dd73af7.gif" width="25%" height="25%"/>
