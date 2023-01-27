@@ -56,8 +56,6 @@ Not sure about `Render`? Check out the comparison to `screenshot`and `screen_rec
 
 # 🚀 Getting started
 
-# 🚀 Getting started
-
 ### Installing
 
 **Depend on it**

@@ -23,3 +23,7 @@
 
 * readme: comparison
 
+## 0.0.7
+
+* readme: layout correction
+
