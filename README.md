@@ -30,17 +30,17 @@ Main features include:
 
 **Why `Render`? The comparison:**
 
-|                                             |   `Render`   | [screen_recorder](https://pub.dev/packages/screen_recorder) | [screenshot](https://pub.dev/packages/screenshot) | 
-|:-------------------------------------------:|:------------:|:-----------------------------------------------------------:|:-------------------------------------------------:|
-|                Capture image                |      ✔️      |                              ❌                              |                        ✔️                         | 
-|               Capture motion                |      ✔️      |                              ❌                              |                        ❌️️                        | 
-|                Record motion                |      ✔️      |                             ✔️                              |                       ❌️️️                        | 
-|                Format export                | Any + custom |                        Only to bytes                        |                   Only to bytes                   | 
-|                    Audio                    |      ✔️      |                              ❌                              |                       ❌️️️                        |
-|             Notification stream             |      ✔️      |                              ❌                              |                       ❌️️️                        | 
-| <p>Post-capturing <p> interpolation scaling |      ✔️      |                            ❌️️️                             |                       ❌️️️                        |
-|          Out of Context capturing           |      ✔️      |                            ❌️️️️                            |                        ✔️                         | 
-|            Platform limitations             |     Web      |                              -                              |                       -️️️                        |  
+|                                             |     `Render`      | [screen_recorder](https://pub.dev/packages/screen_recorder) | [screenshot](https://pub.dev/packages/screenshot) | 
+|:-------------------------------------------:|:-----------------:|:-----------------------------------------------------------:|:-------------------------------------------------:|
+|                Capture image                |        ✔️         |                              ❌                              |                        ✔️                         | 
+|               Capture motion                |        ✔️         |                              ❌                              |                        ❌️️                        | 
+|                Record motion                |        ✔️         |                             ✔️                              |                       ❌️️️                        | 
+|                Format export                | Standard + custom |                        Only to bytes                        |                   Only to bytes                   | 
+|                    Audio                    |        ✔️         |                              ❌                              |                       ❌️️️                        |
+|             Notification stream             |        ✔️         |                              ❌                              |                       ❌️️️                        | 
+| <p>Post-capturing <p> interpolation scaling |        ✔️         |                            ❌️️️                             |                       ❌️️️                        |
+|          Out of Context capturing           |        ✔️         |                            ❌️️️️                            |                        ✔️                         | 
+|            Platform limitations             |        Web        |                              -                              |                       -️️️                        |  
 
 *Comparison is not ought to be biased, if you feel something is wrong please reach out on github*
 
