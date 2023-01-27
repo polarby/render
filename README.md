@@ -24,27 +24,11 @@ Main features include:
 
 *All features support (if supported by format):* Transparency & sound
 
+
+Not sure about `Render`? Check out the comparison to `screenshot`and `screen_recorder`[here](#-the-comparison-to-other-packages).
 -------
 
-<img src="https://user-images.githubusercontent.com/52090518/214943744-7785bb9f-ef86-42fe-9682-c4088dd73af7.gif" align="left" width="25%" height="25%"/>
-
-**Why `Render`? The comparison:**
-
-|                                             |     `Render`      | [screen_recorder](https://pub.dev/packages/screen_recorder) | [screenshot](https://pub.dev/packages/screenshot) | 
-|:-------------------------------------------:|:-----------------:|:-----------------------------------------------------------:|:-------------------------------------------------:|
-|                Capture image                |        ✔️         |                              ❌                              |                        ✔️                         | 
-|               Capture motion                |        ✔️         |                              ❌                              |                        ❌️️                        | 
-|                Record motion                |        ✔️         |                             ✔️                              |                       ❌️️️                        | 
-|                Format export                | Standard + custom |                        Only to bytes                        |                   Only to bytes                   | 
-|                    Audio                    |        ✔️         |                              ❌                              |                       ❌️️️                        |
-|             Notification stream             |        ✔️         |                              ❌                              |                       ❌️️️                        | 
-| <p>Post-capturing <p> interpolation scaling |        ✔️         |                            ❌️️️                             |                       ❌️️️                        |
-|          Out of Context capturing           |        ✔️         |                            ❌️️️️                            |                        ✔️                         | 
-|            Platform limitations             |        Web        |                              -                              |                       -️️️                        |  
-
-*Comparison is not ought to be biased, if you feel something is wrong please reach out on github*
-
-<br clear="left"/>
+<img src="https://user-images.githubusercontent.com/52090518/214943744-7785bb9f-ef86-42fe-9682-c4088dd73af7.gif" width="25%" height="25%"/>
 
 **Table of Contents**
 
@@ -63,6 +47,7 @@ Main features include:
     - [Exportable Formats](#exportable-formats)
         - [Custom formats](#custom-formats)
 - [📁 Class documentation](#-class-documentation)
+- [❔ The comparison to other packages](#-the-comparison-to-other-packages)
 - [🔧 Under the hood](#-under-the-hood)
 - [📑 Licence & Patents](#-licence--patents)
 - [🚨 Known issues](#-known-issues)
@@ -451,6 +436,22 @@ classDiagram
         -processTimeout
     }
 ```
+
+## ❔ The comparison to other packages
+
+|                                             |     `Render`      | [screen_recorder](https://pub.dev/packages/screen_recorder) | [screenshot](https://pub.dev/packages/screenshot) | 
+|:-------------------------------------------:|:-----------------:|:-----------------------------------------------------------:|:-------------------------------------------------:|
+|                Capture image                |        ✔️         |                              ❌                              |                        ✔️                         | 
+|               Capture motion                |        ✔️         |                              ❌                              |                        ❌️️                        | 
+|                Record motion                |        ✔️         |                             ✔️                              |                       ❌️️️                        | 
+|                Format export                | Standard + custom |                        Only to bytes                        |                   Only to bytes                   | 
+|                    Audio                    |        ✔️         |                              ❌                              |                       ❌️️️                        |
+|             Notification stream             |        ✔️         |                              ❌                              |                       ❌️️️                        | 
+| <p>Post-capturing <p> interpolation scaling |        ✔️         |                            ❌️️️                             |                       ❌️️️                        |
+|          Out of Context capturing           |        ✔️         |                            ❌️️️️                            |                        ✔️                         | 
+|            Platform limitations             |        Web        |                              -                              |                       -️️️                        |  
+
+*Comparison is not ought to be biased, if you feel something is wrong please reach out on github*
 
 ## 🔧 Under the hood
 
