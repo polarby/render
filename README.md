@@ -26,8 +26,25 @@ Main features include:
 
 -------
 
-<img src="https://user-images.githubusercontent.com/52090518/214943744-7785bb9f-ef86-42fe-9682-c4088dd73af7.gif" width="25%" height="25%"/>
+<img src="https://user-images.githubusercontent.com/52090518/214943744-7785bb9f-ef86-42fe-9682-c4088dd73af7.gif" align="left" width="25%" height="25%"/>
 
+**Why `Render`? The comparison:**
+
+|                                             |   `Render`   | [screen_recorder](https://pub.dev/packages/screen_recorder) | [screenshot](https://pub.dev/packages/screenshot) | 
+|:-------------------------------------------:|:------------:|:-----------------------------------------------------------:|:-------------------------------------------------:|
+|                Capture image                |      ✔️      |                              ❌                              |                        ✔️                         | 
+|               Capture motion                |      ✔️      |                              ❌                              |                        ❌️️                        | 
+|                Record motion                |      ✔️      |                             ✔️                              |                       ❌️️️                        | 
+|                Format export                | Any + custom |                        Only to bytes                        |                   Only to bytes                   | 
+|                    Audio                    |      ✔️      |                              ❌                              |                       ❌️️️                        |
+|             Notification stream             |      ✔️      |                              ❌                              |                       ❌️️️                        | 
+| <p>Post-capturing <p> interpolation scaling |      ✔️      |                            ❌️️️                             |                       ❌️️️                        |
+|          Out of Context capturing           |      ✔️      |                            ❌️️️️                            |                        ✔️                         | 
+|            Platform limitations             |     Web      |                              -                              |                       -️️️                        |  
+
+*Comparison is not ought to be biased, if you feel something is wrong please reach out on github*
+
+<br clear="left"/>
 
 **Table of Contents**
 
@@ -50,6 +67,8 @@ Main features include:
 - [📑 Licence & Patents](#-licence--patents)
 - [🚨 Known issues](#-known-issues)
 - [📢 Additional information & Contribution](#-additional-information--contribution)
+
+# 🚀 Getting started
 
 # 🚀 Getting started
 
@@ -116,7 +135,7 @@ There are 4 methods you can call to capture an image:
 
 - `captureImage()` to render the child of `Render` widget, which is in your widget tree.
 - `captureImageFromWidget(Widget widget)` to render a invisible provided widget.
-- `captureImageWithStream(Widget widget)` to render the child of `Render` widget, which is in your
+- `captureImageWithStream()` to render the child of `Render` widget, which is in your
   widget tree with a notification stream.
 - `captureImageFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
   notification stream.
@@ -141,7 +160,7 @@ There are 4 methods you can call to capture motion of a widget:
 
 - `captureMotion()` to render the child of `Render` widget, which is in your widget tree.
 - `captureMotionFromWidget(Widget widget)` to render a invisible provided widget.
-- `captureMotionWithStream(Widget widget)` to render the child of `Render` widget, which is in your
+- `captureMotionWithStream()` to render the child of `Render` widget, which is in your
   widget tree with a notification stream.
 - `captureMotionFromWidgetWithStream(Widget widget)` to render a invisible provided widget with a
   notification stream.
@@ -284,7 +303,8 @@ You can take advantage of `simultaneousCaptureHandlers`, `pixelRatio` and `frame
 the `RenderSettings` class.
 
 Handlers process and write frames from the RAM to a local directory. Each frame size is determined
-by the size of `pixelRatio`, and the `frameRate`is settings how many handler operations are needed per
+by the size of `pixelRatio`, and the `frameRate`is settings how many handler operations are needed
+per
 second. Having multiple handlers at the same time heavily influences the performance of the
 application during rendering.
 
@@ -311,7 +331,7 @@ To get a good sweet spot you can follow the following introduction for your spec
 
 There currently [no support for web](https://github.com/polarby/render/issues/6), as file writing is
 an issue. Windows version might require a simple rewrite of processing structure, but i do not have
-access a device to debug.
+access to a device to debug.
 
 ### Exportable Formats
 
@@ -331,7 +351,7 @@ default video player does not support transparency.
 #### Custom Formats
 
 In case you want to export your rendering as a custom format, that is currently not supported by
-this plugin, but support by FFmpeg conversion, you can follow the instructions below to extend
+this plugin, but supported by FFmpeg conversion, you can follow the instructions below to extend
 the format class:
 
 [comment]: # (@formatter:off)
@@ -451,7 +471,7 @@ conversion.
 It relies on `RepaintBoundary` to capture flutter widgets frame by frame. Each frame is needs to be
 build-out (not necessary in a visible widget tree) to be able to get captured.
 
-During capturing, handlers are asynchronously initiated to do conversion from a captured raw image 
+During capturing, handlers are asynchronously initiated to do conversion from a captured raw image
 and then write the file of eachframe in png format to a temporary directory.
 
 In the processing step, each frame is read from the temporary
@@ -468,14 +488,19 @@ because Open-Source rocks, and everything else just sucks for everyone!
 **Disclaimer:** I am not a lawyer. If you are concerned enough, seek professional legal advice.
 
 This package also takes advantage of FFmpeg plugin, which is **believed** to have
-patented algorithms, but even themselves **"dont know it"**:
+patented algorithms, but even themselves **"don't know it"**:
 
-Here is what FFmpeg says on its [website](https://ffmpeg.org/legal.html): 
-> **Does FFmpeg use patented algorithms?** We do not know, we are not lawyers so we are not qualified to answer this. Also we have never read patents to implement any part of FFmpeg, so even if we were qualified we could not answer it as we do not know what is patented. Furthermore the sheer number of software patents makes it impossible to read them all so no one (lawyer or not) could answer such a question with a definite no, those who do lie.
+Here is what FFmpeg says on its [website](https://ffmpeg.org/legal.html):
+> **Does FFmpeg use patented algorithms?** We do not know, we are not lawyers so we are not
+> qualified to answer this. Also we have never read patents to implement any part of FFmpeg, so even
+> if we were qualified we could not answer it as we do not know what is patented. Furthermore the
+> sheer number of software patents makes it impossible to read them all so no one (lawyer or not)
+> could answer such a question with a definite no, those who do lie.
 
-For more info on the flutter ffmpeg check the [FFmpeg-Kit patent disclaimer](https://github.com/arthenica/ffmpeg-kit#15-patents)
+For more info on the flutter ffmpeg check
+the [FFmpeg-Kit patent disclaimer](https://github.com/arthenica/ffmpeg-kit#15-patents)
 
-Also note that, they may not assert their right to prevent you using the invention. 
+Also note that, they may not assert their right to prevent you using the invention.
 They would only do so if your use of the invention materially impacts their
 sales or otherwise made them more money than taking legal action against you.
 [Source](https://softwareengineering.stackexchange.com/a/183809)

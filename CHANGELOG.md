@@ -10,6 +10,16 @@
 
 * Updated readme
 * formated
-* 
 
+## 0.0.4
+
+* Spelling and link correction
+
+## 0.0.5
+
+* legal description updated
+
+## 0.0.6
+
+* readme: comparison
 
