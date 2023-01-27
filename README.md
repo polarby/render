@@ -467,18 +467,18 @@ because Open-Source rocks, and everything else just sucks for everyone!
 
 **Disclaimer:** I am not a lawyer. If you are concerned enough, seek professional legal advice.
 
-Unfortunately this package also takes advantage of FFmpeg plugin, which is **believed** to have
-patented algorithms. It is not clearly explained in their documentation, but it is **believed** that
-FFmpeg and x264 (both used in this package) include algorithms which are subject to software
-patents. For more info check
-the [FFmpeg-Kit patent disclaimer](https://github.com/arthenica/ffmpeg-kit#15-patents).
+This package also takes advantage of FFmpeg plugin, which is **believed** to have
+patented algorithms, but even themselves **"dont know it"**:
 
-Also note that, even if someone else does patent it, they may not assert their right to prevent you
-using the invention. They would only do so if your use of the invention materially impacts their
+Here is what FFmpeg says on its [website](https://ffmpeg.org/legal.html): 
+> **Does FFmpeg use patented algorithms?** We do not know, we are not lawyers so we are not qualified to answer this. Also we have never read patents to implement any part of FFmpeg, so even if we were qualified we could not answer it as we do not know what is patented. Furthermore the sheer number of software patents makes it impossible to read them all so no one (lawyer or not) could answer such a question with a definite no, those who do lie.
+
+For more info on the flutter ffmpeg check the [FFmpeg-Kit patent disclaimer](https://github.com/arthenica/ffmpeg-kit#15-patents)
+
+Also note that, they may not assert their right to prevent you using the invention. 
+They would only do so if your use of the invention materially impacts their
 sales or otherwise made them more money than taking legal action against you.
 [Source](https://softwareengineering.stackexchange.com/a/183809)
-
-As mentioned above, seek professional advice if it concerns you.
 
 Please refer to [Pub.dev](https://pub.dartlang.org/packages/render) to see the used library's
 and possibly different sub-licences.
