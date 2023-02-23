@@ -33,7 +33,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
       session.recordResult(output);
       _processing = false;
     } on RenderException catch (error) {
-      session.recordError(error, fatal: true);
+      session.recordError(error);
     }
   }
 
@@ -77,7 +77,15 @@ abstract class RenderProcessor<T extends RenderFormat> {
         );
       },
       (Log log) {
-        session.recordLog(log.getMessage());
+        final message = log.getMessage();
+        if (message.toLowerCase().contains("error")) {
+          session.recordError(RenderException(
+            "[Ffmpeg processing error] $message",
+            fatal: true,
+          ));
+        } else {
+          session.recordLog(message);
+        }
       },
       (Statistics statistics) {
         final progression = ((statistics.getTime() * 100) ~/
@@ -95,8 +103,10 @@ abstract class RenderProcessor<T extends RenderFormat> {
       session.settings.processTimeout,
       onTimeout: () {
         session.recordError(
-          const RenderException("Processing session timeout"),
-          fatal: true,
+          const RenderException(
+            "Processing session timeout",
+            fatal: true,
+          ),
         );
         ffmpegSession.cancel();
       },

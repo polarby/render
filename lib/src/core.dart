@@ -195,6 +195,7 @@ class RenderController {
     LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
+    bool logInConsole = false,
   }) {
     final notifier = StreamController<RenderNotifier>.broadcast();
     DetachedRenderSession.create(format, settings, logLevel ?? this.logLevel)
@@ -205,6 +206,9 @@ class RenderController {
       final processor = ImageProcessor(realSession);
       await processor.process();
     });
+    if (logInConsole) {
+      _debugPrintOnStream(notifier.stream, "Capturing image started");
+    }
     return notifier.stream;
   }
 
@@ -221,6 +225,7 @@ class RenderController {
     LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
+    bool logInConsole = false,
   }) {
     final notifier = StreamController<RenderNotifier>.broadcast();
     DetachedRenderSession.create(format, settings, logLevel ?? this.logLevel)
@@ -231,6 +236,9 @@ class RenderController {
       final processor = MotionProcessor(realSession);
       await processor.process();
     });
+    if (logInConsole) {
+      _debugPrintOnStream(notifier.stream, "Capturing motion started");
+    }
     return notifier.stream;
   }
 
@@ -250,6 +258,7 @@ class RenderController {
     LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
+    bool logInConsole = false,
   }) {
     final widgetTask = WidgetIdentifier(controllerId: id, widget: widget);
     final notifier = StreamController<RenderNotifier>.broadcast();
@@ -265,6 +274,12 @@ class RenderController {
       final processor = ImageProcessor(realSession);
       await processor.process();
     });
+    if (logInConsole) {
+      _debugPrintOnStream(
+          notifier.stream,
+          "Capturing image from "
+          "widget started");
+    }
     return notifier.stream;
   }
 
@@ -287,6 +302,7 @@ class RenderController {
     LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
+    bool logInConsole = false,
   }) {
     final widgetTask = WidgetIdentifier(controllerId: id, widget: widget);
     final notifier = StreamController<RenderNotifier>.broadcast();
@@ -302,6 +318,12 @@ class RenderController {
       final processor = MotionProcessor(realSession);
       await processor.process();
     });
+    if (logInConsole) {
+      _debugPrintOnStream(
+          notifier.stream,
+          "Capturing motion from "
+          "widget started");
+    }
     return notifier.stream;
   }
 

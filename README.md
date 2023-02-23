@@ -24,8 +24,8 @@ Main features include:
 
 *All features support (if supported by format):* Transparency & sound
 
-
-Not sure about `Render`? Check out the comparison to `screenshot`and `screen_recorder`[here](#-the-comparison-to-other-packages).
+Not sure about `Render`? Check out the comparison to `screenshot`
+and `screen_recorder`[here](#-the-comparison-to-other-packages).
 
 -------
 
@@ -88,6 +88,10 @@ import 'package:render/render.dart';
 
 Render provides you with a wide range of methods to capture widgets. All widgets to be captures
 must be wrapped in the `Render` widget, with a provided controller to initiate rendering.
+
+Note that the render widget cannot change its size during capturing as dynamic dimensions of output
+files are universally not supported by main formats. Wrapping your widget in an expandable widget,
+therefore may throw an error.
 
 [comment]: # (@formatter:off)
 ```dart

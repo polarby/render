@@ -27,3 +27,8 @@
 
 * readme: layout correction
 
+## 0.0.8
+
+* ffmpeg error log
+* same-size frame error checking
+

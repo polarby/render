@@ -38,6 +38,12 @@ class RenderCapturer<K extends RenderFormat> {
   /// Start tim of capturing
   DateTime? startTime;
 
+  /// The size of the first frame. Used to maintain equality of size throughout
+  /// capturing.
+  /// In duration the actual "first" frame will be disposed and the next frame
+  /// will be seen as first frame.
+  Size? firstFrameSize;
+
   /// Runs a capturing process for a defined time. Returns capturing time duration.
   Future<RenderSession<K, RealRenderSettings>> run(Duration duration) async {
     start(duration);
@@ -82,15 +88,17 @@ class RenderCapturer<K extends RenderFormat> {
     assert(_rendering, "Cannot finish capturing as, no active capturing.");
     _rendering = false;
     startingDuration = null;
-    final capturingDuration = Duration(
-        milliseconds: DateTime.now().millisecondsSinceEpoch -
-            startTime!.millisecondsSinceEpoch);
-    final frameAmount = _unhandledCaptures.length;
+    // * wait for handlers
     await Future.doWhile(() async {
       //await all active capture handlers
       await Future.wait(_handlers);
       return _handlers.length < _unhandledCaptures.length;
     });
+    // * finish capturing, notify session
+    final capturingDuration = Duration(
+        milliseconds: DateTime.now().millisecondsSinceEpoch -
+            startTime!.millisecondsSinceEpoch);
+    final frameAmount = _unhandledCaptures.length;
     _handlers.clear();
     _unhandledCaptures.clear();
     return session.upgrade(capturingDuration, frameAmount);
@@ -124,10 +132,8 @@ class RenderCapturer<K extends RenderFormat> {
           duration != null ? duration.inSeconds * targetFrameRate : null;
       _captureFrame(frame, totalFrameTarget);
     } on RenderException catch (exception) {
-      session.recordError(
-        exception,
-        fatal: false,
-      );
+      session.recordError(exception);
+      if (exception.fatal) return;
     }
     session.binding.addPostFrameCallback(
       (binderTimeStamp) => _postFrameCallback(
@@ -180,7 +186,6 @@ class RenderCapturer<K extends RenderFormat> {
           "Handling frame $captureNumber unsuccessful.",
           details: e,
         ),
-        fatal: false,
       );
     }
     _activeHandlers--;
@@ -200,6 +205,7 @@ class RenderCapturer<K extends RenderFormat> {
 
   /// Captures associated task of this frame
   void _captureFrame(int frameNumber, [int? totalFrameTarget]) {
+    // * capture
     ui.Image image;
     if (session.task is KeyIdentifier) {
       image = _captureContext((session.task as KeyIdentifier).key);
@@ -208,6 +214,21 @@ class RenderCapturer<K extends RenderFormat> {
     } else {
       throw const RenderException("Could not identify render task.");
     }
+    // * Check for valid frame size
+    // [Resolved] https://github.com/polarby/render/issues/9
+    final frameSize = Size(image.width.toDouble(), image.height.toDouble());
+    firstFrameSize ??= frameSize;
+    if (frameSize != firstFrameSize) {
+      throw const RenderException(
+        "Invalid frame sizes. "
+        "All Render frames must have a fixed size during capturing",
+        details:
+            "The render widget might be wrapped by an expandable widget that "
+            "changes size during capturing.",
+        fatal: true,
+      );
+    }
+    // * initiate handler
     _unhandledCaptures.add(image);
     _triggerHandler(totalFrameTarget);
     _recordActivity(RenderState.capturing, frameNumber, totalFrameTarget,

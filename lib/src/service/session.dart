@@ -227,16 +227,16 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
   }
 
   /// A method that is used to record errors in the session.
-  void recordError(RenderException exception, {bool fatal = true}) {
+  void recordError(RenderException exception) {
     if (_notifier.isClosed) return;
     _notifier.add(
       RenderError(
         timestamp: currentTimeStamp,
-        fatal: fatal,
+        fatal: exception.fatal,
         exception: exception,
       ),
     );
-    if (fatal) {
+    if (exception.fatal) {
       dispose();
     }
   }

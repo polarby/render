@@ -74,6 +74,7 @@ class _MyHomePageState extends State<MyHomePage>
                       final stream = renderController.captureMotionWithStream(
                         functionController.duration,
                         settings: const MotionSettings(pixelRatio: 3),
+                        logInConsole: true,
                         format: MovFormat(audio: [
                           RenderAudio.url(
                             Uri.parse(
