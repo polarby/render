@@ -164,12 +164,18 @@ class RenderCapturer<K extends RenderFormat> {
       await rawFile.writeAsBytes(rawIntList);
       // * write & convert file (to save storage)
       final file = session.createInputFile("frame$captureNumber.png");
+      final saveSize = Size(
+        // adjust frame size, so that it can be divided by 2
+        (capture.width / 2).ceil() * 2,
+        (capture.height / 2).ceil() * 2,
+      );
       await FFmpegKit.executeWithArguments([
         "-y",
         "-f", "rawvideo", // specify input format
         "-pixel_format", "rgba", // maintain transparency
         "-video_size", "${capture.width}x${capture.height}", // set capture size
         "-i", rawFile.path, // input the raw frame
+        "-vf", "scale=${saveSize.width}:${saveSize.height}", // scale to save
         file.path, //out put png
       ]);
       // * finish

@@ -35,7 +35,7 @@ class _AnimatedExampleWidgetState extends State<AnimatedExampleWidget> {
                 animation: widget.exampleAnimationController.colorAnimation,
                 builder: (context, child) {
                   return Container(
-                    height: 100,
+                    height: 101,
                     width: 100,
                     color:
                         widget.exampleAnimationController.colorAnimation.value,
