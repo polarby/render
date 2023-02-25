@@ -32,3 +32,8 @@
 * ffmpeg error log
 * same-size frame error checking
 
+## 0.0.9
+
+* safe size frames (dividable by 2)
+* pixelRatio note
+

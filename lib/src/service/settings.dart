@@ -5,6 +5,9 @@ abstract class RenderSettings {
   ///
   /// See [RenderRepaintBoundary](https://api.flutter.dev/flutter/rendering/RenderRepaintBoundary/toImage.html)
   /// for the underlying implementation.
+  ///
+  /// Please take into account, that certain platform players might not be able
+  /// to visualize extremely high pixel resolution.
   final double pixelRatio;
 
   /// The time out for processing captures. Note that the process timeout is not

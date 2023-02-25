@@ -40,6 +40,7 @@ dependencies:
   render:
     path: ../
   video_player: ^2.5.1
+  simple_animations: ^5.0.0+3
 
 
 dev_dependencies:
