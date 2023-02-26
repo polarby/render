@@ -39,8 +39,7 @@ dependencies:
   gallery_saver: ^2.3.2
   render:
     path: ../
-  video_player: ^2.5.1
-  simple_animations: ^5.0.0+3
+  video_player: ^2.5.2
 
 
 dev_dependencies:

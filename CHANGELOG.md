@@ -37,3 +37,7 @@
 * safe size frames (dividable by 2)
 * pixelRatio note
 
+## 0.1.0
+
+* support for cropping on audio source
+

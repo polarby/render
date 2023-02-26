@@ -302,7 +302,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.0.9"
+    version: "0.1.0"
   rich_console:
     dependency: transitive
     description:
@@ -311,14 +311,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.4"
-  simple_animations:
-    dependency: "direct main"
-    description:
-      name: simple_animations
-      sha256: "6da9a59389d7f6695391f702b0893a0fc63aed2b4d41509cfc1f8781218db635"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.0+3"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -400,10 +392,10 @@ packages:
     dependency: "direct main"
     description:
       name: video_player
-      sha256: "59f7f31c919c59cbedd37c617317045f5f650dc0eeb568b0b0de9a36472bdb28"
+      sha256: "6cec15c21974282994577ffcfb5b42e64a699d38583138ec8dcb3d0a6902a41c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.1"
+    version: "2.5.2"
   video_player_android:
     dependency: transitive
     description:

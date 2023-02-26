@@ -28,8 +28,8 @@ abstract class RenderProcessor<T extends RenderFormat> {
     }
     _processing = true;
     try {
-      final output = await _processTask(session.task,
-          session.format.processShare); //TODO: correct process share
+      final output =
+          await _processTask(session.task, session.format.processShare);
       session.recordResult(output);
       _processing = false;
     } on RenderException catch (error) {
@@ -48,7 +48,6 @@ abstract class RenderProcessor<T extends RenderFormat> {
       outputPath: mainOutputFile.path,
       frameRate: session.settings.realFrameRate,
     );
-
     await _executeCommand(
       operation.arguments,
       progressShare: progressShare,
@@ -80,7 +79,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
         final message = log.getMessage();
         if (message.toLowerCase().contains("error")) {
           session.recordError(RenderException(
-            "[Ffmpeg processing error] $message",
+            "[Ffmpeg execution error] $message",
             fatal: true,
           ));
         } else {
@@ -95,7 +94,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
         session.recordActivity(
           RenderState.processing,
           progression.toDouble(),
-          message: "Processing captures",
+          message: "Converting captures",
         );
       },
     );

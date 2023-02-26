@@ -75,11 +75,19 @@ class _MyHomePageState extends State<MyHomePage>
                         functionController.duration,
                         settings: const MotionSettings(pixelRatio: 3),
                         logInConsole: true,
-                        format: MovFormat(audio: [
+                        format: Mp4Format(audio: [
                           RenderAudio.url(
                             Uri.parse(
                                 "https://www.fluttercampus.com/video.mp4"),
                           ),
+                          /*
+                          RenderAudio.url(
+                            Uri.parse(
+                                "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),
+                            startTime: 40,
+                            endTime: 45.4365,
+                          ),
+                           */
                         ]),
                       );
                       setState(() {

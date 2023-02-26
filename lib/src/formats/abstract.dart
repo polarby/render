@@ -67,6 +67,9 @@ abstract class RenderFormat {
   /// In case that there are sub tasks you can pass multiple operations here.
   /// The asynchronous execution of those arguments will be in a synchronous
   /// sequence.
+  ///
+  /// Waiting time of processor will be treated as preparation time for
+  /// processing (should not contain the main process)
   FFmpegRenderOperation processor({
     required String inputPath,
     required String outputPath,
@@ -90,8 +93,9 @@ abstract class RenderFormat {
 abstract class MotionFormat extends RenderFormat {
   /// Additional audio for the motion format (if supported by output format)
   /// Make sure that the audio file has the same length as the output video.
-  /// If you provide multiple audios, it will takes the shortest and will stop
-  /// at the last frame if the audio is longer than the video.
+  ///
+  /// If you provide multiple audios, it will takes the longest and will freeze
+  /// video at the last frame, if the audio is exceeds the video duration.
   final List<RenderAudio>? audio;
 
   /// Formats that include some sort of motion and have multiple frames.
@@ -111,7 +115,7 @@ abstract class MotionFormat extends RenderFormat {
     Interpolation? interpolation,
   });
 
-  /// Default motion processor. This can be override, if more settings are
+  /// Default motion processor. This can be override, if more/other settings are
   /// needed.
   @override
   FFmpegRenderOperation processor(
@@ -121,21 +125,25 @@ abstract class MotionFormat extends RenderFormat {
     final audioInput = audio != null && audio!.isNotEmpty
         ? audio!.map((e) => "-i??${e.path}").join('??')
         : null;
-    final mergeAudios = audio != null && audio!.isNotEmpty
-        ? ";${List.generate(audio!.length, (index) => "[${index + 1}:a]").join()}"
-            "amerge=inputs=${audio!.length}[a]"
+    final mergeAudiosList = audio != null && audio!.isNotEmpty
+        ? ";${List.generate(audio!.length, (index) => "[${index + 1}:a]" // list audio
+                "atrim=start=${audio![index].startTime}" // start time of audio
+                ":${"end=${audio![index].endTime}"}[a${index + 1}];").join()}" // end time of audio
+            "${List.generate(audio!.length, (index) => "[a${index + 1}]").join()}" // list audio
+            "amix=inputs=${audio!.length}[a]" // merge audios
         : "";
-    final overwriteAudio = audio != null && audio!.isNotEmpty
-        ? "-map??[v]??-map??[a]??-c:v??libx264??-c:a??"
-            "aac??-shortest??-pix_fmt??yuv420p??-vsync??2"
-        : "-map??[v]??-pix_fmt??yuv420p";
+    final overwriteAudioExecution =
+        audio != null && audio!.isNotEmpty // merge audios with existing (none)
+            ? "-map??[v]??-map??[a]??-c:v??libx264??-c:a??"
+                "aac??-shortest??-pix_fmt??yuv420p??-vsync??2"
+            : "-map??[v]??-pix_fmt??yuv420p";
     return FFmpegRenderOperation([
       "-i", inputPath, // retrieve  captures
       audioInput,
       "-filter_complex",
       "[0:v]${scalingFilter != null ? "$scalingFilter," : ""}"
-          "setpts=N/($frameRate*TB)[v]$mergeAudios",
-      overwriteAudio,
+          "setpts=N/($frameRate*TB)[v]$mergeAudiosList",
+      overwriteAudioExecution,
       "-y",
       outputPath, // write output file
     ]);
