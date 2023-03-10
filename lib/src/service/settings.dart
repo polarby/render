@@ -18,7 +18,7 @@ abstract class RenderSettings {
 
   /// A data class for storing render related settings.
   const RenderSettings({
-    this.pixelRatio = 3,
+    this.pixelRatio = 1,
     this.processTimeout = const Duration(minutes: 3),
   });
 

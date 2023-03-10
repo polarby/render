@@ -8,7 +8,6 @@ import 'package:render/src/formats/abstract.dart';
 import 'package:render/src/service/notifier.dart';
 import 'package:render/src/service/session.dart';
 import 'package:render/src/service/settings.dart';
-import 'package:render/src/service/task_identifier.dart';
 import 'service/exception.dart';
 
 abstract class RenderProcessor<T extends RenderFormat> {
@@ -29,7 +28,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
     _processing = true;
     try {
       final output =
-          await _processTask(session.task, session.format.processShare);
+          await _processTask(session.format.processShare);
       session.recordResult(output);
       _processing = false;
     } on RenderException catch (error) {
@@ -39,7 +38,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
 
   /// Processes task frames and writes the output with the specific format
   /// Returns the process output file.
-  Future<File> _processTask(TaskIdentifier task, double progressShare) async {
+  Future<File> _processTask(double progressShare) async {
     final mainOutputFile =
         session.createOutputFile("output_main.${session.format.extension}");
     // Receive main operation processing instructions

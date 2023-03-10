@@ -205,6 +205,7 @@ class RenderController {
       final realSession = await capturer.single();
       final processor = ImageProcessor(realSession);
       await processor.process();
+      await session.dispose();
     });
     if (logInConsole) {
       _debugPrintOnStream(notifier.stream, "Capturing image started");
@@ -235,6 +236,7 @@ class RenderController {
       final realSession = await capturer.run(duration);
       final processor = MotionProcessor(realSession);
       await processor.process();
+      await session.dispose();
     });
     if (logInConsole) {
       _debugPrintOnStream(notifier.stream, "Capturing motion started");
@@ -273,6 +275,7 @@ class RenderController {
       final realSession = await capturer.single();
       final processor = ImageProcessor(realSession);
       await processor.process();
+      await session.dispose();
     });
     if (logInConsole) {
       _debugPrintOnStream(
@@ -317,6 +320,7 @@ class RenderController {
       final realSession = await capturer.run(duration);
       final processor = MotionProcessor(realSession);
       await processor.process();
+      await session.dispose();
     });
     if (logInConsole) {
       _debugPrintOnStream(

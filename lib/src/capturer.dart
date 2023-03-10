@@ -86,6 +86,9 @@ class RenderCapturer<K extends RenderFormat> {
   /// Finishes current capturing process. Returns the total capturing time.
   Future<RenderSession<K, RealRenderSettings>> finish() async {
     assert(_rendering, "Cannot finish capturing as, no active capturing.");
+    final capturingDuration = Duration(
+        milliseconds: DateTime.now().millisecondsSinceEpoch -
+            startTime!.millisecondsSinceEpoch);  // log end of capturing
     _rendering = false;
     startingDuration = null;
     // * wait for handlers
@@ -95,9 +98,6 @@ class RenderCapturer<K extends RenderFormat> {
       return _handlers.length < _unhandledCaptures.length;
     });
     // * finish capturing, notify session
-    final capturingDuration = Duration(
-        milliseconds: DateTime.now().millisecondsSinceEpoch -
-            startTime!.millisecondsSinceEpoch);
     final frameAmount = _unhandledCaptures.length;
     _handlers.clear();
     _unhandledCaptures.clear();
@@ -149,9 +149,9 @@ class RenderCapturer<K extends RenderFormat> {
     int captureNumber, [
     int? totalFrameTarget,
   ]) async {
-    final ui.Image capture = _unhandledCaptures.elementAt(captureNumber);
     _activeHandlers++;
     try {
+      final ui.Image capture = _unhandledCaptures.elementAt(captureNumber);
       // * retrieve bytes
       // toByteData(format: ui.ImageByteFormat.png) takes way longer than raw
       // and then converting to png with ffmpeg
