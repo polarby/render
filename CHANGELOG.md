@@ -41,3 +41,8 @@
 
 * support for cropping on audio source
 
+## 0.1.1
+
+* time capture bug resolved(laggy outcome)
+* proper session disposal
+
