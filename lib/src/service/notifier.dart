@@ -22,6 +22,8 @@ abstract class RenderNotifier {
   bool get isActivity => this is RenderActivity;
 
   bool get isLog => this is RenderLog;
+
+  bool get isFatalError => isError && (this as RenderError).fatal;
 }
 
 /// Used to notify the user about an error that has occurred in the

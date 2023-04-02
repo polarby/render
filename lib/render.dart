@@ -1,7 +1,6 @@
 library render;
 
 export 'src/core.dart';
-export 'src/service/motion_recorder.dart';
 export 'src/service/exception.dart';
 export 'src/service/settings.dart';
 export 'src/service/notifier.dart';

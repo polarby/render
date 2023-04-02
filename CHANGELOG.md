@@ -43,6 +43,11 @@
 
 ## 0.1.1
 
-* time capture bug resolved(laggy outcome)
+* time capture bug resolved (laggy outcome)
 * proper session disposal
+
+## 0.1.2
+
+* error on closing application during active render session
+* doc update
 

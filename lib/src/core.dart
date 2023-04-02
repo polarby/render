@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:render/src/service/exception.dart';
 import 'package:render/src/service/task_identifier.dart';
 import 'package:rich_console/printRich.dart';
 import 'package:uuid/uuid.dart';
@@ -10,7 +11,6 @@ import 'package:render/src/formats/abstract.dart';
 import 'package:render/src/formats/image.dart';
 import 'package:render/src/formats/motion.dart';
 import 'package:render/src/process.dart';
-import 'package:render/src/service/motion_recorder.dart';
 import 'package:render/src/service/session.dart';
 import 'package:render/src/service/settings.dart';
 import 'service/notifier.dart';
@@ -28,7 +28,10 @@ class RenderController {
   /// mode.
   final LogLevel logLevel;
 
-  //TODO: render controller doc (copy from read me)
+  /// All active render sessions
+  final List<RenderSession> _activeSessions = [];
+
+  /// The controller to initiate a render process. See doc for more info.
   RenderController({this.logLevel = LogLevel.debug})
       : id = UuidValue(const Uuid().v4());
 
@@ -43,11 +46,14 @@ class RenderController {
         overwriteTask != null || _globalTask?.key.currentWidget != null,
         "RenderController must have a Render instance "
         "connected to create a session.");
-    return RenderSession.fromDetached(
-      detachedSession: detachedRenderSession,
-      notifier: notifier,
-      task: overwriteTask ?? _globalTask!,
-    );
+    final session = RenderSession.fromDetached(
+        detachedSession: detachedRenderSession,
+        notifier: notifier,
+        task: overwriteTask ?? _globalTask!,
+        onDispose: () => _activeSessions.removeWhere(
+            (s) => s.sessionId == detachedRenderSession.sessionId));
+    _activeSessions.add(session);
+    return session;
   }
 
   /// Listens to stream and prints out debug, if in debug mode.
@@ -92,8 +98,10 @@ class RenderController {
       format: format,
     );
     _debugPrintOnStream(stream, "Capturing image started");
-    return await stream.firstWhere((element) => element.isResult)
-        as RenderResult;
+    final out = await stream
+        .firstWhere((event) => event.isResult || event.isFatalError);
+    if (out.isFatalError) throw (out as RenderError).exception;
+    return out as RenderResult;
   }
 
   /// Captures an image and returns the result as future.
@@ -119,8 +127,10 @@ class RenderController {
       format: format,
     );
     _debugPrintOnStream(stream, "Capturing image from widget started");
-    return await stream.firstWhere((element) => element.isResult)
-        as RenderResult;
+    final out = await stream
+        .firstWhere((event) => event.isResult || event.isFatalError);
+    if (out.isFatalError) throw (out as RenderError).exception;
+    return out as RenderResult;
   }
 
   /// Captures the motion of a widget and returns a future of the result.
@@ -146,8 +156,10 @@ class RenderController {
       format: format,
     );
     _debugPrintOnStream(stream, "Capturing motion started");
-    return await stream.firstWhere((element) => element.isResult)
-        as RenderResult;
+    final out = await stream
+        .firstWhere((event) => event.isResult || event.isFatalError);
+    if (out.isFatalError) throw (out as RenderError).exception;
+    return out as RenderResult;
   }
 
   /// Captures motion of a widget that is out of the widget tree
@@ -179,8 +191,10 @@ class RenderController {
       format: format,
     );
     _debugPrintOnStream(stream, "Capturing motion from widget started");
-    return await stream.firstWhere((element) => element.isResult)
-        as RenderResult;
+    final out = await stream
+        .firstWhere((event) => event.isResult || event.isFatalError);
+    if (out.isFatalError) throw (out as RenderError).exception;
+    return out as RenderResult;
   }
 
   /// Captures an image and returns a stream of information of current
@@ -339,6 +353,7 @@ class RenderController {
     LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
+    bool logInConsole = false,
   }) {
     assert(!kIsWeb, "Render does not support Web yet");
     assert(
@@ -350,6 +365,8 @@ class RenderController {
       capturingSettings: settings,
       task: _globalTask!,
       logLevel: logLevel ?? this.logLevel,
+      controller: this,
+      logInConsole: logInConsole,
     );
   }
 
@@ -362,6 +379,7 @@ class RenderController {
     LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
     MotionFormat format = const MovFormat(),
+    bool logInConsole = false,
   }) {
     assert(!kIsWeb, "Render does not support Web yet");
     return MotionRecorder.start(
@@ -369,7 +387,71 @@ class RenderController {
       capturingSettings: settings,
       task: WidgetIdentifier(controllerId: id, widget: widget),
       logLevel: logLevel ?? this.logLevel,
+      controller: this,
+      logInConsole: logInConsole,
     );
+  }
+}
+
+class MotionRecorder<T extends MotionFormat> {
+  final RenderController _controller;
+
+  /// All related render recording settings
+  final MotionSettings capturingSettings;
+
+  /// The output format of the recording
+  final T format;
+
+  final bool logInConsole;
+
+  /// What notifications should be displayed
+  final LogLevel logLevel;
+  late final StreamController<RenderNotifier> _notifier;
+  late final RenderSession<T, MotionSettings> _session;
+  late final RenderCapturer<T> _capturer;
+
+  /// Starts a motion recording process
+  MotionRecorder.start({
+    required RenderController controller,
+    required this.logLevel,
+    required this.format,
+    required this.capturingSettings,
+    required TaskIdentifier task,
+    required this.logInConsole,
+  }) : _controller = controller {
+    _notifier = StreamController<RenderNotifier>.broadcast();
+    DetachedRenderSession.create(format, capturingSettings, logLevel)
+        .then((detachedSession) {
+      _session = _controller._createRenderSessionFrom(
+        detachedSession,
+        _notifier,
+        task is WidgetIdentifier ? task : null,
+      );
+      _capturer = RenderCapturer(_session);
+      _capturer.start();
+    });
+    if (logInConsole) {
+      _controller._debugPrintOnStream(
+          _notifier.stream, "Recording motion started");
+    }
+  }
+
+  /// It is highly recommended to make use of stream for capturing motion,
+  /// as the process usually takes longer and the user will likely wants to get
+  /// notified the process of rendering for longer operations.
+  Stream<RenderNotifier> get stream => _notifier.stream;
+
+  /// Stops the recording and returns the result of the recording.
+  Future<RenderResult> stop() async {
+    final realSession = await _capturer.finish();
+    final processor = MotionProcessor(realSession);
+    processor.process(); // wait for result instead of process
+    final out = await stream
+        .firstWhere((event) => event.isResult || event.isFatalError);
+    if (out.isFatalError) throw (out as RenderError).exception;
+    _notifier.close();
+    await _session.dispose();
+    return out as RenderResult;
   }
 }
 
@@ -414,17 +496,43 @@ class Render extends StatefulWidget {
   State<Render> createState() => _RenderState();
 }
 
-class _RenderState extends State<Render> {
+class _RenderState extends State<Render> with WidgetsBindingObserver {
   final GlobalKey renderKey = GlobalKey();
   bool hasAttached = false;
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Gets called when application has been closed/paused and is back to normal
+    // [Issue fix]: https://github.com/polarby/render/issues/11#issuecomment-1492948345
+    if (state == AppLifecycleState.detached ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      final numberOfSessions = widget.controller?._activeSessions.length ?? 0;
+      for (int i = 0; i < numberOfSessions; i++) {
+        widget.controller?._activeSessions.first.recordError(
+          const RenderException(
+            "Application was paused during an active render session.",
+            fatal: true,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.controller != null) {
       attach();
       hasAttached = true;
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

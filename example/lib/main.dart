@@ -97,8 +97,9 @@ class _MyHomePageState extends State<MyHomePage>
                       setState(() {
                         functionController.attach(stream);
                       });
-                      final result = await stream
-                          .firstWhere((element) => element.isResult);
+                      final result = await stream.firstWhere(
+                          (event) => event.isResult || event.isFatalError);
+                      if (result.isFatalError) return;
                       displayResult(result as RenderResult);
                     },
                     exampleAnimationController: functionController,

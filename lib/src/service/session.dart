@@ -124,6 +124,8 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
   /// remaining time calculation.
   final DateTime startTime;
 
+  final VoidCallback onDispose;
+
   /// A class that holds all the information about the current session.
   /// used to pass information between the different parts of the rendering
   /// process.
@@ -138,6 +140,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
     required super.format,
     required super.binding,
     required this.task,
+    required this.onDispose,
     required StreamController<RenderNotifier> notifier,
     DateTime? startTime,
   })  : _notifier = notifier,
@@ -151,6 +154,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
     required DetachedRenderSession<T, K> detachedSession,
     required StreamController<RenderNotifier> notifier,
     required this.task,
+    required this.onDispose,
     DateTime? startTime,
   })  : _notifier = notifier,
         startTime = DateTime.now(),
@@ -176,6 +180,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
         capturingDuration: capturingDuration,
         frameAmount: frameAmount,
       ),
+      onDispose: onDispose,
       startTime: startTime,
       logLevel: logLevel,
       inputDirectory: inputDirectory,
@@ -260,6 +265,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
 
   /// Disposing the current render session.
   Future<void> dispose() async {
+    onDispose();
     if (Directory(inputDirectory).existsSync()) {
       Directory(inputDirectory).deleteSync(recursive: true);
     }

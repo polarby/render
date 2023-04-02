@@ -269,7 +269,7 @@ stream.listen((event) { // listens to stream until it closes by itself (when res
 });
 
 // result can then be displayed (see Motion rendering)
-final result = await stream.firstWhere((element) => element.isResult);
+final result = await stream.firstWhere((event) => event.isResult || event.isFatalError);
 ```
 [comment]: # (@formatter:on)
 
