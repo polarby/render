@@ -51,3 +51,8 @@
 * error on closing application during active render session
 * doc update
 
+## 0.1.3
+
+* window update (flutter 3.1) flutterView
+
+

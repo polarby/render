@@ -1,6 +1,6 @@
 name: render
 description: A package to render any native static and moving flutter widgets to exportable formats
-version: 0.1.2
+version: 0.1.3
 homepage: https://github.com/polarby/render
 
 environment:
@@ -12,7 +12,7 @@ dependencies:
   provider: ^6.0.5
   flutter:
     sdk: flutter
-  path_provider: ^2.0.13
+  path_provider: ^2.0.15
   rich_console: ^1.0.4
   uuid: ^3.0.7
 
