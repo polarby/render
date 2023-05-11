@@ -115,12 +115,14 @@ class RenderController {
   ///
   /// Default file format is [ImageFormat.png]
   Future<RenderResult> captureImageFromWidget(
+    BuildContext context,
     Widget widget, {
     LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
     ImageFormat format = const PngFormat(),
   }) async {
     final stream = captureImageFromWidgetWithStream(
+      context,
       widget,
       logLevel: logLevel,
       settings: settings,
@@ -177,6 +179,7 @@ class RenderController {
   ///
   /// Default file format is [MotionFormat.mov]
   Future<RenderResult> captureMotionFromWidget(
+    BuildContext context,
     Widget widget,
     Duration duration, {
     LogLevel? logLevel,
@@ -184,6 +187,7 @@ class RenderController {
     MotionFormat format = const MovFormat(),
   }) async {
     final stream = captureMotionFromWidgetWithStream(
+      context,
       widget,
       duration,
       logLevel: logLevel,
@@ -270,6 +274,7 @@ class RenderController {
   ///
   /// Default file format is [ImageFormat.png]
   Stream<RenderNotifier> captureImageFromWidgetWithStream(
+    BuildContext context,
     Widget widget, {
     LogLevel? logLevel,
     ImageSettings settings = const ImageSettings(),
@@ -285,7 +290,7 @@ class RenderController {
         notifier,
         widgetTask,
       );
-      final capturer = RenderCapturer(session);
+      final capturer = RenderCapturer(session, context);
       final realSession = await capturer.single();
       final processor = ImageProcessor(realSession);
       await processor.process();
@@ -314,6 +319,7 @@ class RenderController {
   ///
   /// Default file format is [MotionFormat.mov]
   Stream<RenderNotifier> captureMotionFromWidgetWithStream(
+    BuildContext context,
     Widget widget,
     Duration duration, {
     LogLevel? logLevel,
@@ -330,7 +336,7 @@ class RenderController {
         notifier,
         widgetTask,
       );
-      final capturer = RenderCapturer(session);
+      final capturer = RenderCapturer(session, context);
       final realSession = await capturer.run(duration);
       final processor = MotionProcessor(realSession);
       await processor.process();
@@ -373,8 +379,11 @@ class RenderController {
   /// Records motion of a widget and returns a recording controller to
   /// `stop()` the recording or listen to a stream of information's and errors.
   ///
+  /// [context] is required to
+  ///
   /// Default file format is [MotionFormat.mov]
   MotionRecorder recordMotionFromWidget(
+    BuildContext context,
     Widget widget, {
     LogLevel? logLevel,
     MotionSettings settings = const MotionSettings(),
@@ -383,6 +392,7 @@ class RenderController {
   }) {
     assert(!kIsWeb, "Render does not support Web yet");
     return MotionRecorder.start(
+      context: context,
       format: format,
       capturingSettings: settings,
       task: WidgetIdentifier(controllerId: id, widget: widget),
@@ -418,6 +428,7 @@ class MotionRecorder<T extends MotionFormat> {
     required this.capturingSettings,
     required TaskIdentifier task,
     required this.logInConsole,
+    BuildContext? context,
   }) : _controller = controller {
     _notifier = StreamController<RenderNotifier>.broadcast();
     DetachedRenderSession.create(format, capturingSettings, logLevel)
@@ -427,7 +438,7 @@ class MotionRecorder<T extends MotionFormat> {
         _notifier,
         task is WidgetIdentifier ? task : null,
       );
-      _capturer = RenderCapturer(_session);
+      _capturer = RenderCapturer(_session, context);
       _capturer.start();
     });
     if (logInConsole) {

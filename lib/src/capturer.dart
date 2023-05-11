@@ -18,7 +18,10 @@ class RenderCapturer<K extends RenderFormat> {
   /// Current session captures should be assigned to.
   final RenderSession<K, RenderSettings> session;
 
-  RenderCapturer(this.session);
+  /// Context of the flutter app, if a widget should be captured
+  final BuildContext? context;
+
+  RenderCapturer(this.session, [this.context]);
 
   int _activeHandlers = 0;
 
@@ -88,7 +91,7 @@ class RenderCapturer<K extends RenderFormat> {
     assert(_rendering, "Cannot finish capturing as, no active capturing.");
     final capturingDuration = Duration(
         milliseconds: DateTime.now().millisecondsSinceEpoch -
-            startTime!.millisecondsSinceEpoch);  // log end of capturing
+            startTime!.millisecondsSinceEpoch); // log end of capturing
     _rendering = false;
     startingDuration = null;
     // * wait for handlers
@@ -264,16 +267,21 @@ class RenderCapturer<K extends RenderFormat> {
   /// Captures a widget-frame that is not build in a widget tree.
   /// Inspired by [screenshot plugin](https://github.com/SachinGanesh/screenshot)
   ui.Image _captureWidget(Widget widget) {
+    assert(context != null,
+        "Capturing from widget requires valid context of in RenderCapturer.");
     try {
       final RenderRepaintBoundary repaintBoundary = RenderRepaintBoundary();
-      Size logicalSize = ui.window.physicalSize / ui.window.devicePixelRatio;
-      Size imageSize = ui.window.physicalSize;
+
+      final flutterView = View.of(context!);
+      Size logicalSize =
+          flutterView.physicalSize / flutterView.devicePixelRatio;
+      Size imageSize = flutterView.physicalSize;
 
       assert(logicalSize.aspectRatio.toStringAsPrecision(5) ==
           imageSize.aspectRatio.toStringAsPrecision(5));
 
       final RenderView renderView = RenderView(
-        window: ui.window,
+        view: flutterView,
         child: RenderPositionedBox(
             alignment: Alignment.center, child: repaintBoundary),
         configuration: ViewConfiguration(
