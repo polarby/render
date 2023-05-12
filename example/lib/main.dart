@@ -82,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage>
                         format: Mp4Format(audio: [
                           RenderAudio.url(
                             Uri.parse(
-                                "https://www.fluttercampus.com/video.mp4"),
+                                "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4"),
                           ),
                           /*
                           RenderAudio.url(
