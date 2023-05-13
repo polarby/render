@@ -220,8 +220,12 @@ class RenderController {
         .then((detachedSession) async {
       final session = _createRenderSessionFrom(detachedSession, notifier);
       final capturer = RenderCapturer(session);
-      final realSession = await capturer.single();
-      final processor = ImageProcessor(realSession);
+      capturer.openPipe();
+      capturer.single().then((value) => capturer.closePipe());
+      final processor = ImageProcessor(
+          session,
+          capturer.firstFrameSize!.width.toInt(),
+          capturer.firstFrameSize!.height.toInt());
       await processor.process();
       await session.dispose();
     });
@@ -251,8 +255,15 @@ class RenderController {
         .then((detachedSession) async {
       final session = _createRenderSessionFrom(detachedSession, notifier);
       final capturer = RenderCapturer(session);
-      final realSession = await capturer.run(duration);
-      final processor = MotionProcessor(realSession);
+      capturer.openPipe();
+      await capturer
+          .single(); // wait for first frame to be captured to get the size of the frame
+      capturer.run(duration).then(
+          (value) => capturer.closePipe()); // run the capturer for the duration
+      final processor = MotionProcessor(
+          session,
+          capturer.firstFrameSize!.width.toInt(),
+          capturer.firstFrameSize!.height.toInt());
       await processor.process();
       await session.dispose();
     });
@@ -291,8 +302,12 @@ class RenderController {
         widgetTask,
       );
       final capturer = RenderCapturer(session, context);
-      final realSession = await capturer.single();
-      final processor = ImageProcessor(realSession);
+      capturer.openPipe();
+      capturer.single().then((value) => capturer.closePipe());
+      final processor = ImageProcessor(
+          session,
+          capturer.firstFrameSize!.width.toInt(),
+          capturer.firstFrameSize!.height.toInt());
       await processor.process();
       await session.dispose();
     });
@@ -337,8 +352,13 @@ class RenderController {
         widgetTask,
       );
       final capturer = RenderCapturer(session, context);
-      final realSession = await capturer.run(duration);
-      final processor = MotionProcessor(realSession);
+      capturer.openPipe();
+      await capturer.single();
+      capturer.run(duration).then((value) => capturer.closePipe());
+      final processor = MotionProcessor(
+          session,
+          capturer.firstFrameSize!.width.toInt(),
+          capturer.firstFrameSize!.height.toInt());
       await processor.process();
       await session.dispose();
     });
@@ -440,6 +460,7 @@ class MotionRecorder<T extends MotionFormat> {
       );
       _capturer = RenderCapturer(_session, context);
       _capturer.start();
+      _capturer.openPipe();
     });
     if (logInConsole) {
       _controller._debugPrintOnStream(
@@ -454,8 +475,12 @@ class MotionRecorder<T extends MotionFormat> {
 
   /// Stops the recording and returns the result of the recording.
   Future<RenderResult> stop() async {
-    final realSession = await _capturer.finish();
-    final processor = MotionProcessor(realSession);
+    await _capturer.finish();
+    await _capturer.closePipe();
+    final processor = MotionProcessor(
+        _session,
+        _capturer.firstFrameSize!.width.toInt(),
+        _capturer.firstFrameSize!.height.toInt());
     processor.process(); // wait for result instead of process
     final out = await stream
         .firstWhere((event) => event.isResult || event.isFatalError);

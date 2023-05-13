@@ -131,6 +131,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> displayResult(RenderResult result,
       [bool saveToGallery = false]) async {
+    print("file path: ${result.output.path}");
     print("file exits: ${await result.output.exists()}");
     if (mounted) {
       showDialog(

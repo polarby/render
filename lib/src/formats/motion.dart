@@ -91,6 +91,8 @@ class GifFormat extends MotionFormat {
     required String inputPath,
     required String outputPath,
     required double frameRate,
+    required int width,
+    required int height,
   }) {
     return FFmpegRenderOperation([
       "-y",

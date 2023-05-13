@@ -152,7 +152,7 @@ class RenderResult extends RenderActivity {
   final File output;
 
   ///The settings used to create the output file.
-  final RealRenderSettings usedSettings;
+  final RenderSettings usedSettings;
 
   final RenderFormat format;
 

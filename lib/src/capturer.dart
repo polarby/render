@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:render/src/service/notifier.dart';
@@ -47,6 +48,9 @@ class RenderCapturer<K extends RenderFormat> {
   /// will be seen as first frame.
   Size? firstFrameSize;
 
+  /// The writer to write the captured images to.
+  IOSink? _frameWriter;
+
   /// Runs a capturing process for a defined time. Returns capturing time duration.
   Future<RenderSession<K, RealRenderSettings>> run(Duration duration) async {
     start(duration);
@@ -76,6 +80,7 @@ class RenderCapturer<K extends RenderFormat> {
     assert(!_rendering, "Cannot start new process, during an active one.");
     _rendering = true;
     startTime = DateTime.now();
+
     session.binding.addPostFrameCallback((binderTimeStamp) {
       startingDuration = session.binding.currentFrameTimeStamp;
       _postFrameCallback(
@@ -161,29 +166,12 @@ class RenderCapturer<K extends RenderFormat> {
       final ByteData? byteData =
           await capture.toByteData(format: ui.ImageByteFormat.rawRgba);
       final rawIntList = byteData!.buffer.asInt8List();
-      // * write raw file for processing
-      final rawFile = session
-          .createProcessFile("frameHandling/frame_raw$captureNumber.bmp");
-      await rawFile.writeAsBytes(rawIntList);
-      // * write & convert file (to save storage)
-      final file = session.createInputFile("frame$captureNumber.png");
-      final saveSize = Size(
-        // adjust frame size, so that it can be divided by 2
-        (capture.width / 2).ceil() * 2,
-        (capture.height / 2).ceil() * 2,
-      );
-      await FFmpegKit.executeWithArguments([
-        "-y",
-        "-f", "rawvideo", // specify input format
-        "-pixel_format", "rgba", // maintain transparency
-        "-video_size", "${capture.width}x${capture.height}", // set capture size
-        "-i", rawFile.path, // input the raw frame
-        "-vf", "scale=${saveSize.width}:${saveSize.height}", // scale to save
-        file.path, //out put png
-      ]);
+
+      // * write image to pipe
+      _writeToPipe(rawIntList);
+
       // * finish
       capture.dispose();
-      rawFile.deleteSync();
       if (!_rendering) {
         //only record next state, when rendering is done not to mix up notification
         _recordActivity(RenderState.handleCaptures, captureNumber,
@@ -335,8 +323,8 @@ class RenderCapturer<K extends RenderFormat> {
   }
 
   /// Recording the activity of the current session specifically for capturing
-  void _recordActivity(
-      RenderState state, int frame, int? totalFrameTarget, String message) {
+  void _recordActivity(RenderState state, int frame, int? totalFrameTarget,
+      String message) {
     if (totalFrameTarget != null) {
       session.recordActivity(
           state, ((1 / totalFrameTarget) * frame).clamp(0.0, 1.0),
@@ -345,5 +333,22 @@ class RenderCapturer<K extends RenderFormat> {
       // capturing activity when recording (no time limit set)
       session.recordActivity(state, null, message: message);
     }
+  }
+
+  /// Opens the pipe to the ffmpeg process
+  void openPipe() {
+    var f = File(session.inputPipe);
+    _frameWriter = f.openWrite();
+  }
+
+  /// Closes the pipe to the ffmpeg process
+  Future<void> closePipe() async {
+    await _frameWriter?.close();
+    await FFmpegKitConfig.closeFFmpegPipe(session.inputPipe);
+  }
+
+  /// Writes data to the pipe to the ffmpeg process
+  void _writeToPipe(List<int> data) {
+    return _frameWriter?.add(data);
   }
 }

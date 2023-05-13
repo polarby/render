@@ -11,13 +11,17 @@ import 'package:render/src/service/settings.dart';
 import 'service/exception.dart';
 
 abstract class RenderProcessor<T extends RenderFormat> {
-  final RenderSession<T, RealRenderSettings> session;
+  final RenderSession<T, RenderSettings> session;
 
-  RenderProcessor(this.session);
+  RenderProcessor(this.session, this.width, this.height);
 
   bool _processing = false;
 
   String get inputPath;
+
+  int width;
+
+  int height;
 
   ///Converts saved frames from temporary directory to output file
   Future<void> process() async {
@@ -27,8 +31,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
     }
     _processing = true;
     try {
-      final output =
-          await _processTask(session.format.processShare);
+      final output = await _processTask(session.format.processShare);
       session.recordResult(output);
       _processing = false;
     } on RenderException catch (error) {
@@ -41,12 +44,17 @@ abstract class RenderProcessor<T extends RenderFormat> {
   Future<File> _processTask(double progressShare) async {
     final mainOutputFile =
         session.createOutputFile("output_main.${session.format.extension}");
+    double frameRate = 1;
+    if (session.settings.isMotion) {
+      frameRate = session.settings.asMotion!.frameRate.toDouble();
+    }
     // Receive main operation processing instructions
     final operation = session.format.processor(
-      inputPath: inputPath,
-      outputPath: mainOutputFile.path,
-      frameRate: session.settings.realFrameRate,
-    );
+        inputPath: inputPath,
+        outputPath: mainOutputFile.path,
+        frameRate: frameRate,
+        width: width,
+        height: height);
     await _executeCommand(
       operation.arguments,
       progressShare: progressShare,
@@ -86,13 +94,9 @@ abstract class RenderProcessor<T extends RenderFormat> {
         }
       },
       (Statistics statistics) {
-        final progression = ((statistics.getTime() * 100) ~/
-                    session.settings.capturingDuration.inMilliseconds)
-                .clamp(0, 100) /
-            100;
         session.recordActivity(
           RenderState.processing,
-          progression.toDouble(),
+          null,
           message: "Converting captures",
         );
       },
@@ -113,15 +117,15 @@ abstract class RenderProcessor<T extends RenderFormat> {
 }
 
 class ImageProcessor extends RenderProcessor<ImageFormat> {
-  ImageProcessor(super.session);
+  ImageProcessor(super.session, super.width, super.height);
 
   @override
-  String get inputPath => "${session.inputDirectory}/frame0.png";
+  String get inputPath => session.inputPipe;
 }
 
 class MotionProcessor extends RenderProcessor<MotionFormat> {
-  MotionProcessor(super.session);
+  MotionProcessor(super.session, super.width, super.height);
 
   @override
-  String get inputPath => "${session.inputDirectory}/frame%d.png";
+  String get inputPath => session.inputPipe;
 }
