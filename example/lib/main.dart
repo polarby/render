@@ -76,7 +76,6 @@ class _MyHomePageState extends State<MyHomePage>
                         settings: const MotionSettings(
                           pixelRatio: 5,
                           frameRate: 30,
-                          simultaneousCaptureHandlers: 6,
                         ),
                         logInConsole: true,
                         format: Mp4Format(audio: [

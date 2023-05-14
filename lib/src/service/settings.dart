@@ -51,27 +51,9 @@ class MotionSettings extends RenderSettings {
   /// ! This frame rate therefore does not necessary equal to output file frame rate
   final int frameRate;
 
-  /// The max amount of capture handlers that should process captures at once.
-  ///
-  /// Handlers process and write frames from the RAM to a local directory.
-  /// Having multiple handlers at the same time heavily influences the
-  /// performance of the application during rendering.
-  ///
-  /// The more handlers are running simultaneously the worse gets the framerate
-  /// and might result in a "laggy" behavior. Less simultaneously handlers result
-  /// in longer loading phases.
-  ///
-  /// Note, that if there a lot of unhandled frames it might still result in
-  /// laggy behavior, as the application's RAM gets filled with UI images,
-  /// instead of many handler operations.
-  ///
-  /// To get a good sweet spot you can follow the following introduction for
-  /// your specific situation:
-  ///
-  /// Low pixelRatio - high frameRate - many handlers
-  /// high pixelRatio - low frameRate - many handlers
-  /// high pixelRatio - high frameRate - few handlers
-  final int simultaneousCaptureHandlers;
+  @Deprecated("Render has changed internal processing."
+      " This value is not used anymore.")
+  final int? simultaneousCaptureHandlers; //TODO: remove by 0.2.0
 
   /// Data class for storing render related settings.
   /// Setting the optimal settings is critical for a successfully capturing.
@@ -80,7 +62,9 @@ class MotionSettings extends RenderSettings {
   /// it is important find leveled values and optionally computational scaling
   /// of the output format.
   const MotionSettings({
-    this.simultaneousCaptureHandlers = 10,
+    @Deprecated("Render has changed internal processing."
+        " This value is not used anymore.")
+        this.simultaneousCaptureHandlers,
     this.frameRate = 20,
     super.pixelRatio,
     super.processTimeout,

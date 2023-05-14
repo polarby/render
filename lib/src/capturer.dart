@@ -24,11 +24,6 @@ class RenderCapturer<K extends RenderFormat> {
 
   RenderCapturer(this.session, [this.context]);
 
-  int _activeHandlers = 0;
-
-  /// Captures that are yet to be handled. Handled images will be disposed.
-  final List<ui.Image> _unhandledCaptures = [];
-
   /// Current image handling process. Handlers are being handles asynchronous
   /// as conversion and file writing is involved.
   final List<Future<void>> _handlers = [];
@@ -64,11 +59,7 @@ class RenderCapturer<K extends RenderFormat> {
   Future<RenderSession<K, RealRenderSettings>> single() async {
     startTime = DateTime.now();
     _captureFrame(0, 1);
-    await Future.doWhile(() async {
-      //await all active capture handlers
-      await Future.wait(_handlers);
-      return _handlers.length < _unhandledCaptures.length;
-    });
+    await Future.wait(_handlers);
     final capturingDuration = Duration(
         milliseconds: DateTime.now().millisecondsSinceEpoch -
             startTime!.millisecondsSinceEpoch);
@@ -100,15 +91,10 @@ class RenderCapturer<K extends RenderFormat> {
     _rendering = false;
     startingDuration = null;
     // * wait for handlers
-    await Future.doWhile(() async {
-      //await all active capture handlers
-      await Future.wait(_handlers);
-      return _handlers.length < _unhandledCaptures.length;
-    });
+    await Future.wait(_handlers);
     // * finish capturing, notify session
-    final frameAmount = _unhandledCaptures.length;
+    final frameAmount = _handlers.length;
     _handlers.clear();
-    _unhandledCaptures.clear();
     return session.upgrade(capturingDuration, frameAmount);
   }
 
@@ -154,12 +140,11 @@ class RenderCapturer<K extends RenderFormat> {
 
   /// Converting the raw image data to a png file and writing the capture.
   Future<void> _handleCapture(
+    ui.Image capture,
     int captureNumber, [
     int? totalFrameTarget,
   ]) async {
-    _activeHandlers++;
     try {
-      final ui.Image capture = _unhandledCaptures.elementAt(captureNumber);
       // * retrieve bytes
       // toByteData(format: ui.ImageByteFormat.png) takes way longer than raw
       // and then converting to png with ffmpeg
@@ -184,19 +169,6 @@ class RenderCapturer<K extends RenderFormat> {
           details: e,
         ),
       );
-    }
-    _activeHandlers--;
-    _triggerHandler(totalFrameTarget);
-  }
-
-  /// Triggers the next handler, if within allowed simultaneous handlers
-  /// and images still available.
-  void _triggerHandler([int? totalFrameTarget]) {
-    final nextCaptureIndex = _handlers.length;
-    if (_activeHandlers <
-            (session.settings.asMotion?.simultaneousCaptureHandlers ?? 1) &&
-        nextCaptureIndex < _unhandledCaptures.length) {
-      _handlers.add(_handleCapture(nextCaptureIndex, totalFrameTarget));
     }
   }
 
@@ -226,8 +198,7 @@ class RenderCapturer<K extends RenderFormat> {
       );
     }
     // * initiate handler
-    _unhandledCaptures.add(image);
-    _triggerHandler(totalFrameTarget);
+    _handlers.add(_handleCapture(image, frameNumber, totalFrameTarget));
     _recordActivity(RenderState.capturing, frameNumber, totalFrameTarget,
         "Captured frame $frameNumber");
   }
@@ -323,8 +294,8 @@ class RenderCapturer<K extends RenderFormat> {
   }
 
   /// Recording the activity of the current session specifically for capturing
-  void _recordActivity(RenderState state, int frame, int? totalFrameTarget,
-      String message) {
+  void _recordActivity(
+      RenderState state, int frame, int? totalFrameTarget, String message) {
     if (totalFrameTarget != null) {
       session.recordActivity(
           state, ((1 / totalFrameTarget) * frame).clamp(0.0, 1.0),
