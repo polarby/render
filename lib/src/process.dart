@@ -23,12 +23,18 @@ abstract class RenderProcessor<T extends RenderFormat> {
 
   int height;
 
-  ///Converts saved frames from temporary directory to output file
-  Future<void> process() async {
+  int? totalFrameTarget;
+
+  Duration? duration;
+
+  /// Converts the captures into a video file.
+  Future<void> process({Duration? duration}) async {
     if (_processing) {
       throw const RenderException(
           "Cannot start new process, during an active one.");
     }
+    totalFrameTarget = session.settings.asMotion?.frameRate ?? 1;
+    this.duration = duration;
     _processing = true;
     try {
       final output = await _processTask(session.format.processShare);
@@ -44,10 +50,7 @@ abstract class RenderProcessor<T extends RenderFormat> {
   Future<File> _processTask(double progressShare) async {
     final mainOutputFile =
         session.createOutputFile("output_main.${session.format.extension}");
-    double frameRate = 1;
-    if (session.settings.isMotion) {
-      frameRate = session.settings.asMotion!.frameRate.toDouble();
-    }
+    double frameRate = session.settings.asMotion?.frameRate.toDouble() ?? 1;
     // Receive main operation processing instructions
     final operation = session.format.processor(
         inputPath: inputPath,
@@ -94,11 +97,19 @@ abstract class RenderProcessor<T extends RenderFormat> {
         }
       },
       (Statistics statistics) {
-        session.recordActivity(
-          RenderState.processing,
-          null,
-          message: "Converting captures",
-        );
+        if (totalFrameTarget != null && duration != null) {
+          final progression = (statistics.getVideoFrameNumber() /
+                  (totalFrameTarget! * duration!.inSeconds))
+              .clamp(0.0, 1.0);
+          session.recordActivity(RenderState.processing, progression,
+              message: "Converting captures");
+        } else {
+          session.recordActivity(
+            RenderState.processing,
+            null,
+            message: "Converting captures",
+          );
+        }
       },
     );
     await FFmpegKitConfig.ffmpegExecute(ffmpegSession).timeout(

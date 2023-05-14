@@ -264,7 +264,7 @@ class RenderController {
           session,
           capturer.firstFrameSize!.width.toInt(),
           capturer.firstFrameSize!.height.toInt());
-      await processor.process();
+      await processor.process(duration: duration);
       await session.dispose();
     });
     if (logInConsole) {
@@ -359,7 +359,7 @@ class RenderController {
           session,
           capturer.firstFrameSize!.width.toInt(),
           capturer.firstFrameSize!.height.toInt());
-      await processor.process();
+      await processor.process(duration: duration);
       await session.dispose();
     });
     if (logInConsole) {
