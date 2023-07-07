@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:render/src/service/exception.dart';
 import 'package:render/src/service/task_identifier.dart';
-import 'package:rich_console/printRich.dart';
+import 'package:rich_console/rich_console.dart';
 import 'package:uuid/uuid.dart';
 
 import 'dart:async';
