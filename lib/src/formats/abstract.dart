@@ -74,6 +74,8 @@ abstract class RenderFormat {
     required String inputPath,
     required String outputPath,
     required double frameRate,
+    required int width,
+    required int height,
   });
 
   /// Scaling ffmpeg filter with appropriate interpolation integration
@@ -118,10 +120,13 @@ abstract class MotionFormat extends RenderFormat {
   /// Default motion processor. This can be override, if more/other settings are
   /// needed.
   @override
-  FFmpegRenderOperation processor(
-      {required String inputPath,
-      required String outputPath,
-      required double frameRate}) {
+  FFmpegRenderOperation processor({
+    required String inputPath,
+    required String outputPath,
+    required double frameRate,
+    required int width,
+    required int height,
+  }) {
     final audioInput = audio != null && audio!.isNotEmpty
         ? audio!.map((e) => "-i??${e.path}").join('??')
         : null;
@@ -138,6 +143,10 @@ abstract class MotionFormat extends RenderFormat {
                 "aac??-shortest??-pix_fmt??yuv420p??-vsync??2"
             : "-map??[v]??-pix_fmt??yuv420p";
     return FFmpegRenderOperation([
+      "-f", "rawvideo", // input format
+      "-pixel_format", "rgba", // input pixel format
+      "-s", "${width}x${height}", // input size
+      "-r", "$frameRate", // input frame rate
       "-i", inputPath, // retrieve  captures
       audioInput,
       "-filter_complex",
@@ -176,12 +185,19 @@ abstract class ImageFormat extends RenderFormat {
   /// Default image processor. This can be override, if more settings are
   /// needed.
   @override
-  FFmpegRenderOperation processor(
-      {required String inputPath,
-      required String outputPath,
-      required double frameRate}) {
+  FFmpegRenderOperation processor({
+    required String inputPath,
+    required String outputPath,
+    required double frameRate,
+    required int width,
+    required int height,
+  }) {
     return FFmpegRenderOperation([
       "-y",
+      "-f", "rawvideo",
+      "-pixel_format", "rgba",
+      "-s", "${width}x${height}",
+      "-r", "$frameRate",
       "-i", inputPath, // input image
       scalingFilter != null ? "-vf??$scalingFilter" : null,
       "-vframes", "1", // indicate that there is only one frame

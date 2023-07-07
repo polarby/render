@@ -91,9 +91,15 @@ class GifFormat extends MotionFormat {
     required String inputPath,
     required String outputPath,
     required double frameRate,
+    required int width,
+    required int height,
   }) {
     return FFmpegRenderOperation([
       "-y",
+      "-f", "rawvideo", // input format
+      "-pixel_format", "rgba", // input pixel format
+      "-s", "${width}x${height}", // input size
+      "-r", "$frameRate", // input frame rate
       "-i", inputPath, // retrieve  captures
       transparency
           ? "-filter_complex??[0:v] setpts=N/($frameRate*TB),"

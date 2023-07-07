@@ -94,10 +94,13 @@ class BmpFormat extends ImageFormat {
   }
 
   @override
-  FFmpegRenderOperation processor(
-      {required String inputPath,
-      required String outputPath,
-      required double frameRate}) {
+  FFmpegRenderOperation processor({
+    required String inputPath,
+    required String outputPath,
+    required double frameRate,
+    required int width,
+    required int height,
+  }) {
     return FFmpegRenderOperation([
       "-y",
       "-i", inputPath, // input image
