@@ -35,14 +35,15 @@ class ExampleAnimationController extends ChangeNotifier {
 
   static Future<ExampleAnimationController> create(TickerProvider vsync) async {
     VideoPlayerController? videoController;
-    if (!Platform.isMacOS) {
-       videoController = VideoPlayerController.network(
-        'https://www.fluttercampus.com/video.mp4',
-        // 1 min: https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4
-        // 4 sec: 'https://www.fluttercampus.com/video.mp4'
-      );
-       await videoController.initialize();
-    }
+    videoController = VideoPlayerController.networkUrl(
+      Uri.parse(
+        'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
+      ),
+      // 1 min: https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4
+      // 4 sec: 'https://www.fluttercampus.com/video.mp4'
+    );
+    await videoController.initialize();
+
     final animationController = AnimationController(
         vsync: vsync,
         duration:
