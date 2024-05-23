@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:render/src/service/notifier.dart';
@@ -23,11 +24,6 @@ class RenderCapturer<K extends RenderFormat> {
 
   RenderCapturer(this.session, [this.context]);
 
-  int _activeHandlers = 0;
-
-  /// Captures that are yet to be handled. Handled images will be disposed.
-  final List<ui.Image> _unhandledCaptures = [];
-
   /// Current image handling process. Handlers are being handles asynchronous
   /// as conversion and file writing is involved.
   final List<Future<void>> _handlers = [];
@@ -47,6 +43,9 @@ class RenderCapturer<K extends RenderFormat> {
   /// will be seen as first frame.
   Size? firstFrameSize;
 
+  /// The writer to write the captured images to.
+  IOSink? _frameWriter;
+
   /// Runs a capturing process for a defined time. Returns capturing time duration.
   Future<RenderSession<K, RealRenderSettings>> run(Duration duration) async {
     start(duration);
@@ -60,11 +59,7 @@ class RenderCapturer<K extends RenderFormat> {
   Future<RenderSession<K, RealRenderSettings>> single() async {
     startTime = DateTime.now();
     _captureFrame(0, 1);
-    await Future.doWhile(() async {
-      //await all active capture handlers
-      await Future.wait(_handlers);
-      return _handlers.length < _unhandledCaptures.length;
-    });
+    await Future.wait(_handlers);
     final capturingDuration = Duration(
         milliseconds: DateTime.now().millisecondsSinceEpoch -
             startTime!.millisecondsSinceEpoch);
@@ -76,6 +71,7 @@ class RenderCapturer<K extends RenderFormat> {
     assert(!_rendering, "Cannot start new process, during an active one.");
     _rendering = true;
     startTime = DateTime.now();
+
     session.binding.addPostFrameCallback((binderTimeStamp) {
       startingDuration = session.binding.currentFrameTimeStamp;
       _postFrameCallback(
@@ -95,15 +91,10 @@ class RenderCapturer<K extends RenderFormat> {
     _rendering = false;
     startingDuration = null;
     // * wait for handlers
-    await Future.doWhile(() async {
-      //await all active capture handlers
-      await Future.wait(_handlers);
-      return _handlers.length < _unhandledCaptures.length;
-    });
+    await Future.wait(_handlers);
     // * finish capturing, notify session
-    final frameAmount = _unhandledCaptures.length;
+    final frameAmount = _handlers.length;
     _handlers.clear();
-    _unhandledCaptures.clear();
     return session.upgrade(capturingDuration, frameAmount);
   }
 
@@ -149,41 +140,23 @@ class RenderCapturer<K extends RenderFormat> {
 
   /// Converting the raw image data to a png file and writing the capture.
   Future<void> _handleCapture(
+    ui.Image capture,
     int captureNumber, [
     int? totalFrameTarget,
   ]) async {
-    _activeHandlers++;
     try {
-      final ui.Image capture = _unhandledCaptures.elementAt(captureNumber);
       // * retrieve bytes
       // toByteData(format: ui.ImageByteFormat.png) takes way longer than raw
       // and then converting to png with ffmpeg
       final ByteData? byteData =
           await capture.toByteData(format: ui.ImageByteFormat.rawRgba);
       final rawIntList = byteData!.buffer.asInt8List();
-      // * write raw file for processing
-      final rawFile = session
-          .createProcessFile("frameHandling/frame_raw$captureNumber.bmp");
-      await rawFile.writeAsBytes(rawIntList);
-      // * write & convert file (to save storage)
-      final file = session.createInputFile("frame$captureNumber.png");
-      final saveSize = Size(
-        // adjust frame size, so that it can be divided by 2
-        (capture.width / 2).ceil() * 2,
-        (capture.height / 2).ceil() * 2,
-      );
-      await FFmpegKit.executeWithArguments([
-        "-y",
-        "-f", "rawvideo", // specify input format
-        "-pixel_format", "rgba", // maintain transparency
-        "-video_size", "${capture.width}x${capture.height}", // set capture size
-        "-i", rawFile.path, // input the raw frame
-        "-vf", "scale=${saveSize.width}:${saveSize.height}", // scale to save
-        file.path, //out put png
-      ]);
+
+      // * write image to pipe
+      _writeToPipe(rawIntList);
+
       // * finish
       capture.dispose();
-      rawFile.deleteSync();
       if (!_rendering) {
         //only record next state, when rendering is done not to mix up notification
         _recordActivity(RenderState.handleCaptures, captureNumber,
@@ -196,19 +169,6 @@ class RenderCapturer<K extends RenderFormat> {
           details: e,
         ),
       );
-    }
-    _activeHandlers--;
-    _triggerHandler(totalFrameTarget);
-  }
-
-  /// Triggers the next handler, if within allowed simultaneous handlers
-  /// and images still available.
-  void _triggerHandler([int? totalFrameTarget]) {
-    final nextCaptureIndex = _handlers.length;
-    if (_activeHandlers <
-            (session.settings.asMotion?.simultaneousCaptureHandlers ?? 1) &&
-        nextCaptureIndex < _unhandledCaptures.length) {
-      _handlers.add(_handleCapture(nextCaptureIndex, totalFrameTarget));
     }
   }
 
@@ -238,8 +198,7 @@ class RenderCapturer<K extends RenderFormat> {
       );
     }
     // * initiate handler
-    _unhandledCaptures.add(image);
-    _triggerHandler(totalFrameTarget);
+    _handlers.add(_handleCapture(image, frameNumber, totalFrameTarget));
     _recordActivity(RenderState.capturing, frameNumber, totalFrameTarget,
         "Captured frame $frameNumber");
   }
@@ -347,5 +306,22 @@ class RenderCapturer<K extends RenderFormat> {
       // capturing activity when recording (no time limit set)
       session.recordActivity(state, null, message: message);
     }
+  }
+
+  /// Opens the pipe to the ffmpeg process
+  void openPipe() {
+    var f = File(session.inputPipe);
+    _frameWriter = f.openWrite();
+  }
+
+  /// Closes the pipe to the ffmpeg process
+  Future<void> closePipe() async {
+    await _frameWriter?.close();
+    await FFmpegKitConfig.closeFFmpegPipe(session.inputPipe);
+  }
+
+  /// Writes data to the pipe to the ffmpeg process
+  void _writeToPipe(List<int> data) {
+    return _frameWriter?.add(data);
   }
 }

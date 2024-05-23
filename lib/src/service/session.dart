@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:ffmpeg_kit_flutter_https_gpl/ffmpeg_kit_config.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:render/src/service/settings.dart';
@@ -14,20 +15,12 @@ class DetachedRenderSession<T extends RenderFormat, K extends RenderSettings> {
   /// Pointer to session files and operation.
   final String sessionId;
 
-  /// Directory of a temporary storage, where files can be used for processing.
-  /// This should be somewhere in a RAM location for fast processing.
-  final String temporaryDirectory;
-
-  /// Where internal files are being written (frames, layers, palettes, etc.)
-  /// Note that there will be additional sub-directories that separate different
-  /// internal actions and sessions. Directories will be deleted after a session.
-  final String inputDirectory;
+  /// Where image buffer are being piped without writing to files
+  /// Pipe was created by FFmpegKitConfig.registerNewFFmpegPipe()
+  final String inputPipe;
 
   /// Where result files are being written
   final String outputDirectory;
-
-  /// A directory where files are being written that are used for processing.
-  final String processDirectory;
 
   /// All render related settings
   final K settings;
@@ -46,12 +39,10 @@ class DetachedRenderSession<T extends RenderFormat, K extends RenderSettings> {
     required this.logLevel,
     required this.binding,
     required this.outputDirectory,
-    required this.inputDirectory,
     required this.sessionId,
-    required this.temporaryDirectory,
-    required this.processDirectory,
     required this.settings,
     required this.format,
+    required this.inputPipe,
   });
 
   /// Creates a detached render session from default values (paths & session syntax)
@@ -61,15 +52,14 @@ class DetachedRenderSession<T extends RenderFormat, K extends RenderSettings> {
       create<T extends RenderFormat, K extends RenderSettings>(
           T format, K settings, LogLevel logLevel) async {
     final tempDir = await getTemporaryDirectory();
+    final inputPipe = await FFmpegKitConfig.registerNewFFmpegPipe();
     final sessionId = const Uuid().v4();
     return DetachedRenderSession<T, K>(
       logLevel: logLevel,
       binding: SchedulerBinding.instance,
+      inputPipe: inputPipe!,
       outputDirectory: "${tempDir.path}/render/$sessionId/output",
-      inputDirectory: "${tempDir.path}/render/$sessionId/input",
-      processDirectory: "${tempDir.path}/render/$sessionId/process",
       sessionId: sessionId,
-      temporaryDirectory: tempDir.path,
       settings: settings,
       format: format,
     );
@@ -82,17 +72,9 @@ class DetachedRenderSession<T extends RenderFormat, K extends RenderSettings> {
     return outputFile;
   }
 
-  /// Creating a file in the input directory.
-  File createInputFile(String subPath) =>
-      _createFile("$inputDirectory/$subPath");
-
   /// Creating a file in the output directory.
   File createOutputFile(String subPath) =>
       _createFile("$outputDirectory/$subPath");
-
-  /// Creating a file in the process directory.
-  File createProcessFile(String subPath) =>
-      _createFile("$processDirectory/$subPath");
 
   /// The expected processing state share each part holds. This is relevant for
   /// calculating the expected time remain and progress percentage of rendering.
@@ -132,13 +114,11 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
   RenderSession({
     required super.logLevel,
     required super.settings,
-    required super.inputDirectory,
     required super.outputDirectory,
-    required super.processDirectory,
     required super.sessionId,
-    required super.temporaryDirectory,
     required super.format,
     required super.binding,
+    required super.inputPipe,
     required this.task,
     required this.onDispose,
     required StreamController<RenderNotifier> notifier,
@@ -159,15 +139,13 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
   })  : _notifier = notifier,
         startTime = DateTime.now(),
         super(
-          logLevel: detachedSession.logLevel,
+        logLevel: detachedSession.logLevel,
           binding: detachedSession.binding,
           format: detachedSession.format,
           settings: detachedSession.settings,
-          processDirectory: detachedSession.processDirectory,
-          inputDirectory: detachedSession.inputDirectory,
           outputDirectory: detachedSession.outputDirectory,
           sessionId: detachedSession.sessionId,
-          temporaryDirectory: detachedSession.temporaryDirectory,
+          inputPipe: detachedSession.inputPipe,
         );
 
   /// Upgrade the current renderSession to a real session
@@ -183,15 +161,13 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
       onDispose: onDispose,
       startTime: startTime,
       logLevel: logLevel,
-      inputDirectory: inputDirectory,
       outputDirectory: outputDirectory,
-      processDirectory: processDirectory,
       sessionId: sessionId,
-      temporaryDirectory: temporaryDirectory,
       format: format,
       binding: binding,
       task: task,
       notifier: _notifier,
+      inputPipe: inputPipe,
     );
   }
 
@@ -254,7 +230,7 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
         session: this,
         format: format,
         timestamp: currentTimeStamp,
-        usedSettings: settings as RealRenderSettings,
+        usedSettings: settings,
         output: output,
         message: message,
         details: details,
@@ -266,12 +242,6 @@ class RenderSession<T extends RenderFormat, K extends RenderSettings>
   /// Disposing the current render session.
   Future<void> dispose() async {
     onDispose();
-    if (Directory(inputDirectory).existsSync()) {
-      Directory(inputDirectory).deleteSync(recursive: true);
-    }
-    if (Directory(processDirectory).existsSync()) {
-      Directory(processDirectory).deleteSync(recursive: true);
-    }
     await _notifier.close();
   }
 }

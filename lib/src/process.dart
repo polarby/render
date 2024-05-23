@@ -11,24 +11,33 @@ import 'package:render/src/service/settings.dart';
 import 'service/exception.dart';
 
 abstract class RenderProcessor<T extends RenderFormat> {
-  final RenderSession<T, RealRenderSettings> session;
+  final RenderSession<T, RenderSettings> session;
 
-  RenderProcessor(this.session);
+  RenderProcessor(this.session, this.width, this.height);
 
   bool _processing = false;
 
   String get inputPath;
 
-  ///Converts saved frames from temporary directory to output file
-  Future<void> process() async {
+  int width;
+
+  int height;
+
+  int? totalFrameTarget;
+
+  Duration? duration;
+
+  /// Converts the captures into a video file.
+  Future<void> process({Duration? duration}) async {
     if (_processing) {
       throw const RenderException(
           "Cannot start new process, during an active one.");
     }
+    totalFrameTarget = session.settings.asMotion?.frameRate ?? 1;
+    this.duration = duration;
     _processing = true;
     try {
-      final output =
-          await _processTask(session.format.processShare);
+      final output = await _processTask(session.format.processShare);
       session.recordResult(output);
       _processing = false;
     } on RenderException catch (error) {
@@ -41,12 +50,14 @@ abstract class RenderProcessor<T extends RenderFormat> {
   Future<File> _processTask(double progressShare) async {
     final mainOutputFile =
         session.createOutputFile("output_main.${session.format.extension}");
+    double frameRate = session.settings.asMotion?.frameRate.toDouble() ?? 1;
     // Receive main operation processing instructions
     final operation = session.format.processor(
-      inputPath: inputPath,
-      outputPath: mainOutputFile.path,
-      frameRate: session.settings.realFrameRate,
-    );
+        inputPath: inputPath,
+        outputPath: mainOutputFile.path,
+        frameRate: frameRate,
+        width: width,
+        height: height);
     await _executeCommand(
       operation.arguments,
       progressShare: progressShare,
@@ -86,15 +97,19 @@ abstract class RenderProcessor<T extends RenderFormat> {
         }
       },
       (Statistics statistics) {
-        final progression = ((statistics.getTime() * 100) ~/
-                    session.settings.capturingDuration.inMilliseconds)
-                .clamp(0, 100) /
-            100;
-        session.recordActivity(
-          RenderState.processing,
-          progression.toDouble(),
-          message: "Converting captures",
-        );
+        if (totalFrameTarget != null && duration != null) {
+          final progression = (statistics.getVideoFrameNumber() /
+                  (totalFrameTarget! * duration!.inSeconds))
+              .clamp(0.0, 1.0);
+          session.recordActivity(RenderState.processing, progression,
+              message: "Converting captures");
+        } else {
+          session.recordActivity(
+            RenderState.processing,
+            null,
+            message: "Converting captures",
+          );
+        }
       },
     );
     await FFmpegKitConfig.ffmpegExecute(ffmpegSession).timeout(
@@ -113,15 +128,15 @@ abstract class RenderProcessor<T extends RenderFormat> {
 }
 
 class ImageProcessor extends RenderProcessor<ImageFormat> {
-  ImageProcessor(super.session);
+  ImageProcessor(super.session, super.width, super.height);
 
   @override
-  String get inputPath => "${session.inputDirectory}/frame0.png";
+  String get inputPath => session.inputPipe;
 }
 
 class MotionProcessor extends RenderProcessor<MotionFormat> {
-  MotionProcessor(super.session);
+  MotionProcessor(super.session, super.width, super.height);
 
   @override
-  String get inputPath => "${session.inputDirectory}/frame%d.png";
+  String get inputPath => session.inputPipe;
 }

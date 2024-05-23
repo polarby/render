@@ -76,7 +76,6 @@ class _MyHomePageState extends State<MyHomePage>
                         settings: const MotionSettings(
                           pixelRatio: 5,
                           frameRate: 30,
-                          simultaneousCaptureHandlers: 6,
                         ),
                         logInConsole: true,
                         format: Mp4Format(audio: [
@@ -131,6 +130,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> displayResult(RenderResult result,
       [bool saveToGallery = false]) async {
+    print("file path: ${result.output.path}");
     print("file exits: ${await result.output.exists()}");
     if (mounted) {
       showDialog(
