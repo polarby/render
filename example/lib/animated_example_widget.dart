@@ -43,7 +43,6 @@ class _AnimatedExampleWidgetState extends State<AnimatedExampleWidget> {
                 },
               ),
             ),
-            if (!Platform.isMacOS)
               SizedBox(
                 height: 100,
                 width: 100,
