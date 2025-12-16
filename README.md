@@ -525,3 +525,47 @@ Contributions are very welcome and can be merged within hours if testing is succ
 Please note that this is an open source project and is not maintained by a company, but only
 volunteers.
 
+## 📢 ProGuard Rules needed
+
+[Add these comprehensive ProGuard rules to your android/app/proguard-rules.pro](https://github.com/sk3llo/ffmpeg_kit_flutter/issues/79#issuecomment-3154468453)
+
+```mermaid
+# FFmpegKit rules
+-keep class com.antonkarpenko.ffmpegkit.** { *; }
+-dontwarn com.antonkarpenko.ffmpegkit.**
+
+# Keep all FFmpegKit native methods
+-keepclasseswithmembernames class * {
+native <methods>;
+}
+
+# Keep FFmpegKit Config
+-keep class com.antonkarpenko.ffmpegkit.FFmpegKitConfig {
+*;
+}
+
+# Keep ABI Detection
+-keep class com.antonkarpenko.ffmpegkit.AbiDetect {
+*;
+}
+
+# Keep all FFmpegKit sessions
+-keep class com.antonkarpenko.ffmpegkit.*Session {
+*;
+}
+
+# Keep FFmpegKit callbacks
+-keep class com.antonkarpenko.ffmpegkit.*Callback {
+*;
+}
+
+# Preserve all public classes in ffmpegkit
+-keep public class com.antonkarpenko.ffmpegkit.** {
+public *;
+}
+
+# Keep reflection-based access
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes InnerClasses
+```
